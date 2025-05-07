@@ -1,0 +1,39 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* Definição das variáveis de tema: gera utilitários como bg-<nome>-500, text-<nome>-500, etc. */
+@theme {
+  /* Paleta principal */
+  --color-primary: #42C583;
+  --color-secondary:  #093F2B;
+  --color-disable: #C0C0C0;
+  --color-dark-gray:     #3D3D3D;
+  --color-black:         #212121;
+  --color-campos: #B7B7B7;
+
+  /* Cores de layout */
+  --color-background:    #F4F4F4;
+  --color-card:          #FFFFFF;
+
+  /* Status de workflow */
+  --color-pendente:      #C7FFF8;
+  --color-processando:   #FFFDC7;
+  --color-aprovado:      #C7FFD3;
+  --color-recusado:      #FFC7C7;
+
+  /* Tokens de borda e foco */
+  --color-border:        #E5E5E5;
+  --color-ring:          #42C583;
+}
+
+@layer base {
+  /* Reset de bordas e foco */
+  * {
+    @apply border-border outline-[var(--color-ring)]/50;
+  }
+
+  /* Estilos globais do body */
+  body {
+    @apply bg-background text-[var(--color-dark-gray)] font-sans;
+  }
+}
