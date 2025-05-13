@@ -1,7 +1,7 @@
 import { useCallback, useState, useEffect } from 'react';
 import { useNotas, setUseMockData } from './useNotas';
 import { NotasParams } from '@/api/notas-service';
-import { NotaFiscal } from '@/components/notas/types';
+import { NotaFiscal } from '@/components/common/notas/types';
 
 /**
  * Interface que estende NotasParams para incluir parâmetros adicionais do filtro

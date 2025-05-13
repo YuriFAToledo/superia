@@ -1,5 +1,6 @@
 import Sidebar from "@/components/layout/sidebar";
 import type { Metadata } from "next";
+import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -13,6 +14,7 @@ export default function SuperiaLayout({ children }: { children: React.ReactNode 
         <main className="flex-1">
             {children}
         </main>
+        <Toaster />
     </div>
   );
 }

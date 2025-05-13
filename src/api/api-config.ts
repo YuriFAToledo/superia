@@ -24,7 +24,7 @@ api.interceptors.response.use(
         if (error.response?.status === 401) {
             // Usuário não autenticado, redirecionar para login ou refreshar token
             localStorage.removeItem('auth_token');
-            // window.location.href = '/login';
+            window.location.href = '/';
         }
         return Promise.reject(error);
     }

@@ -1,13 +1,14 @@
 'use client'
 
-import { FileText, FolderClock, Settings2 } from "lucide-react"
+import { FileText, FolderClock, LogOut, Settings2 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useEffect, useState } from "react"
 
 import { Separator } from "@/components/ui/separator"
 import NavItem from "../ui/nav-item"
-
-
+import { createBrowserSupabaseClient } from "@/lib/supabase"
+import { Button } from "@/components/ui/button"
 
 const NavItems = [
     { label: 'Notas fiscais', href: '/notas', icon: FileText },
@@ -17,10 +18,46 @@ const NavItems = [
 
 export default function Sidebar() {
     const pathname = usePathname() || '/'
+    const [userName, setUserName] = useState<string>("")
+
+    useEffect(() => {
+        const fetchUserData = async () => {
+            try {
+                const supabase = createBrowserSupabaseClient()
+                const { data: { user }, error } = await supabase.auth.getUser()
+                
+                if (error) {
+                    console.error("Erro ao buscar usuário:", error)
+                    return
+                }
+                
+                if (user?.user_metadata?.display_name) {
+                    // Pegar apenas o primeiro nome
+                    const fullName = user.user_metadata.display_name
+                    const firstName = fullName.split(' ')[0]
+                    setUserName(firstName)
+                }
+            } catch (error) {
+                console.error("Erro ao buscar dados do usuário:", error)
+            }
+        }
+        
+        fetchUserData()
+    }, [])
+
+    const handleLogout = async () => {
+        try {
+            const supabase = createBrowserSupabaseClient()
+            await supabase.auth.signOut()
+            window.location.href = '/'
+        } catch (error) {
+            console.error("Erro ao fazer logout:", error)
+        }
+    }
 
     return (
-        <div className="h-screen w-[274px] border-r bg-white">
-            <div className="flex h-full flex-col p-3.5">
+        <div className="h-screen w-[274px] border-r bg-white flex flex-col">
+            <div className="flex flex-col p-3.5 flex-grow">
                 {/* Logo */}
                 <div className="flex items-center justify-center mt-12">
                     <Link href="/notas">
@@ -42,6 +79,27 @@ export default function Sidebar() {
                         />
                     ))}
                 </nav>
+            </div>
+            
+            {/* Nome do usuário e Logout */}
+            <div className="p-4">
+                {userName && (
+                    <div className="flex items-center justify-center mb-3">
+                        <div className="text-center">
+                            <p className="text-gray-500 text-xs">Olá,</p>
+                            <p className="font-medium text-base text-secondary">{userName}</p>
+                        </div>
+                    </div>
+                )}
+                
+                <Button 
+                    variant="outline" 
+                    className="w-full flex items-center justify-center gap-2 border-gray-200 mt-1"
+                    onClick={handleLogout}
+                >
+                    <LogOut size={16} />
+                    <span>Fazer logout</span>
+                </Button>
             </div>
         </div>
     )

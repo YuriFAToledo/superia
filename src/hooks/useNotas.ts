@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { notasService, NotasParams, PaginatedResponse } from '@/api/notas-service';
-import { NotaFiscal } from '@/components/notas/types';
+import { NotaFiscal } from '@/components/common/notas/types';
 
 // Dados de exemplo mockados
 export const mockNotas: NotaFiscal[] = [

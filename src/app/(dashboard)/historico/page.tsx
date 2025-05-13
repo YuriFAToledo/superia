@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectValue, SelectTrigger } from "@/components/ui/select"
 import { Search, RefreshCw } from "lucide-react"
-import { HistoricoTable } from "@/components/notas/historico-table"
-import { TableHeader } from "@/components/notas/table-header"
+import { HistoricoTable } from "@/components/common/notas/historico-table"
+import { TableHeader } from "@/components/common/notas/table-header"
 import { useHistoricoPageState } from "@/hooks/useHistoricoPageState"
 
 export default function historico() {

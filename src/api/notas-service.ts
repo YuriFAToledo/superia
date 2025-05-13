@@ -1,5 +1,5 @@
 import api from './api-config';
-import { NotaFiscal } from '@/components/notas/types';
+import { NotaFiscal } from '@/components/common/notas/types';
 
 // Interface para os parâmetros de busca de notas fiscais
 export interface NotasParams {

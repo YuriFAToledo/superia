@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectValue } from "@/components/ui/select"
 import { SelectTrigger } from "@radix-ui/react-select"
 import { TextSearch, FileClock, Search, ChevronDown } from "lucide-react"
-import { NotasTable } from "@/components/notas/notas-table"
+import { NotasTable } from "@/components/common/notas/notas-table"
 import { useNotasPageState } from "@/hooks/useNotasPageState"
 
 export default function NotasFiscais() {
