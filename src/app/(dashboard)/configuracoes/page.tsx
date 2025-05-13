@@ -1,6 +1,5 @@
 'use client'
 
-import { AlertMessage } from "@/components/configuracoes/AlertMessage"
 import { MembrosSection } from "@/components/configuracoes/MembrosSection"
 import { UserProfileCard } from "@/components/configuracoes/UserProfileCard"
 import { useConfiguracoes } from "@/hooks/useConfiguracoes"
@@ -18,9 +17,11 @@ export default function Configuracoes() {
         setNewMemberRole,
         loading,
         loadingMembers,
-        alert,
         members,
         currentUser,
+        currentPage,
+        setCurrentPage,
+        totalPages,
         handleAddMember,
         handleRemoveMember,
         handleEditMember,
@@ -33,10 +34,7 @@ export default function Configuracoes() {
                 Configuração
             </h1>
             
-            {/* Alerta */}
-            {alert && <AlertMessage type={alert.type} message={alert.message} />}
-            
-            <div className="flex gap-4 w-full flex-grow">
+            <div className="flex gap-4 w-full flex-grow h-[600px]">
                 <MembrosSection 
                     isDialogOpen={isDialogOpen}
                     setIsDialogOpen={setIsDialogOpen}
@@ -49,6 +47,10 @@ export default function Configuracoes() {
                     loading={loading}
                     loadingMembers={loadingMembers}
                     members={members}
+                    currentUser={currentUser}
+                    currentPage={currentPage}
+                    setCurrentPage={setCurrentPage}
+                    totalPages={totalPages}
                     handleAddMember={handleAddMember}
                     handleRemoveMember={handleRemoveMember}
                     handleEditMember={handleEditMember}

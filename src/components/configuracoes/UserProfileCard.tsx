@@ -86,8 +86,8 @@ export function UserProfileCard({ currentUser, email, members = [] }: UserProfil
 
     return (
         <>
-            <Card className="w-96 shadow-none bg-white">
-                <CardContent className="p-8 flex flex-col items-center">
+            <Card className="w-96 shadow-none bg-white flex justify-center">
+                <CardContent className="p-8 flex flex-col items-center justify-center">
                     <div className="flex flex-col items-center gap-16 w-full">
                         <div className="flex flex-col items-center gap-4">
                             <Avatar className="w-[100px] h-[100px] bg-[#D9D9D9]">
@@ -101,7 +101,12 @@ export function UserProfileCard({ currentUser, email, members = [] }: UserProfil
                                     {displayName}
                                 </h2>
                                 <p className="font-medium text-indigo-900 text-sm">
-                                    {currentUser?.role || "Administrador"}
+                                    {currentUser?.user_metadata?.role === "user"
+                                        ? "Usuário"
+                                        : currentUser?.user_metadata?.role === "admin"
+                                            ? "Administrador"
+                                            : "-"
+                                    }
                                 </p>
                             </div>
                         </div>
@@ -120,7 +125,7 @@ export function UserProfileCard({ currentUser, email, members = [] }: UserProfil
                             </div>
 
                             <div className="flex flex-col justify-center text-sm w-full">
-                                <span className="text-campos font-light text-sm">Última alteração de senha há 3 anos</span>
+                                <span className="text-campos font-light text-sm">Senha</span>
                                 <button
                                     className="text-green-500 text-xs font-medium flex items-center gap-1 cursor-pointer"
                                     onClick={() => setEditPasswordDialogOpen(true)}

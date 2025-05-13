@@ -37,3 +37,15 @@
     @apply bg-background text-[var(--color-dark-gray)] font-sans;
   }
 }
+
+/* Animações personalizadas */
+@keyframes loader-pulse {
+  0%, 100% {
+    transform: scale(0.75);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.5);
+    opacity: 1;
+  }
+}
