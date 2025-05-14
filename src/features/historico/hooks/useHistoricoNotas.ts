@@ -1,5 +1,5 @@
 import { useCallback, useState, useEffect } from 'react'
-import { NotaFiscal, NotasParams } from '../types'
+import { NotaFiscal, NotasParams, NotaStatusEnum } from '../types'
 import axios from 'axios'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 
@@ -47,7 +47,7 @@ export function useHistoricoNotas(initialParams: NotasParams = {}) {
             let url = API_URL;
             
             // Adicionar parâmetro de status
-            const status = params.status || 'pendente';
+            const status = params.status || 'aprovado';
             url = `${url}?status=${status}`;
             
             // Adicionar outros parâmetros se existirem
@@ -103,9 +103,17 @@ export function useHistoricoNotas(initialParams: NotasParams = {}) {
             
             // Atualizar estados com os dados da API
             if (Array.isArray(notasData)) {
-                setNotas(notasData);
-                setPage(params.page || 1);
-                setTotalPages(data.totalPages || Math.ceil((data.totalItems || notasData.length) / (params.limit || 8)));
+                // Verificar se é um array com um objeto vazio (caso de nenhum resultado)
+                if (notasData.length === 1 && Object.keys(notasData[0]).length === 0) {
+                    console.log('Array com objeto vazio detectado, tratando como array vazio');
+                    setNotas([]);
+                    setPage(params.page || 1);
+                    setTotalPages(1);
+                } else {
+                    setNotas(notasData);
+                    setPage(params.page || 1);
+                    setTotalPages(data.totalPages || Math.ceil((data.totalItems || notasData.length) / (params.limit || 8)));
+                }
             } else {
                 console.warn('Formato de resposta inesperado:', notasData);
                 setNotas([]);
@@ -125,7 +133,7 @@ export function useHistoricoNotas(initialParams: NotasParams = {}) {
     // Efeito para carregar as notas iniciais
     useEffect(() => {
         filterNotas({
-            status: 'pendente',
+            status: NotaStatusEnum.APROVADO,
             limit: initialParams.limit || 8
         });
     }, [filterNotas, initialParams.limit]);
@@ -135,7 +143,7 @@ export function useHistoricoNotas(initialParams: NotasParams = {}) {
         setSearchTerm(term);
         
         filterNotas({
-            status: 'pendente',
+            status: NotaStatusEnum.APROVADO,
             fornecedor: term.trim() ? term : undefined,
             page: 1,
             limit: initialParams.limit || 8
@@ -145,7 +153,7 @@ export function useHistoricoNotas(initialParams: NotasParams = {}) {
     // Função para lidar com mudança de página
     const handlePageChange = useCallback((newPage: number) => {
         filterNotas({
-            status: 'pendente',
+            status: NotaStatusEnum.APROVADO,
             page: newPage,
             fornecedor: searchTerm || undefined,
             limit: initialParams.limit || 8
@@ -160,7 +168,7 @@ export function useHistoricoNotas(initialParams: NotasParams = {}) {
         setSortConfig({ field: field as keyof NotaFiscal | null, direction });
         
         filterNotas({
-            status: 'pendente',
+            status: NotaStatusEnum.APROVADO,
             sort: field as string,
             order: direction,
             page: 1,

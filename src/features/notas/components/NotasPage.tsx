@@ -188,7 +188,11 @@ export function NotasPage() {
               />
             </div>
             
-            {!loading && notas && notas.length > 0 && totalPages > 1 && (
+            {!loading && notas && 
+             Array.isArray(notas) && 
+             notas.length > 0 && 
+             !(notas.length === 1 && Object.keys(notas[0]).length === 0) && 
+             totalPages > 1 && (
               <div className="mt-2 mb-4">
                 <Pagination
                   currentPage={page}

@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useRef } from "react";
 import { useNotasFiscais } from './useNotasFiscais';
 
 // Definindo o tipo para o ref da tabela de notas

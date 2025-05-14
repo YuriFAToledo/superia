@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { useHistoricoNotas } from "./useHistoricoNotas";
+import { NotaStatusEnum } from "../types";
 
 /**
  * Hook para gerenciar o estado da página de histórico de notas fiscais
@@ -42,7 +43,7 @@ export function useHistoricoPageState() {
     const refreshData = useCallback(() => {
         fetchNotas({
             limit: 8,
-            status: 'pendente',
+            status: NotaStatusEnum.PENDENTE,
             fornecedor: inputSearchTerm.trim() ? inputSearchTerm : undefined
         });
     }, [fetchNotas, inputSearchTerm]);

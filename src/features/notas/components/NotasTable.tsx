@@ -91,6 +91,7 @@ export const NotasTable = forwardRef<NotasTableRef, NotasTableProps>(
           break;
         case "recusado":
         case "reprovado":
+        case "rejeitado":
           bgClass = "bg-red-100";
           textClass = "text-red-800";
           label = "Recusado";
@@ -105,6 +106,131 @@ export const NotasTable = forwardRef<NotasTableRef, NotasTableProps>(
         <span className={`px-2 py-1 rounded-full text-xs font-medium ${bgClass} ${textClass}`}>
           {label}
         </span>
+      );
+    };
+
+    // Formatar valor para exibição
+    const formatCurrency = (value: number) => {
+      return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+      }).format(value);
+    };
+
+    // Renderizar o conteúdo da tabela com base no estado
+    const renderTableContent = () => {
+      if (loading) {
+        return (
+          <TableRow>
+            <TableCell colSpan={7} className="text-center py-12">
+              <div className="flex flex-col justify-center items-center">
+                <div className="flex justify-center items-center space-x-4 mb-4">
+                  <div className="w-3 h-3 bg-primary rounded-full opacity-70 animate-[loader-pulse_1.2s_ease-in-out_infinite]"></div>
+                  <div className="w-3 h-3 bg-primary rounded-full opacity-70 animate-[loader-pulse_1.2s_ease-in-out_infinite_0.2s]"></div>
+                  <div className="w-3 h-3 bg-primary rounded-full opacity-70 animate-[loader-pulse_1.2s_ease-in-out_infinite_0.4s]"></div>
+                </div>
+                <span className="text-gray-500 font-medium">Carregando notas...</span>
+              </div>
+            </TableCell>
+          </TableRow>
+        );
+      }
+
+      // Verificar se notas é null, um array vazio ou um array com objeto vazio
+      if (!notas || notas.length === 0 || (notas.length === 1 && Object.keys(notas[0]).length === 0)) {
+        console.log('Notas vazias ou inválidas:', notas);
+        return (
+          <>
+            <TableRow className="h-[52px] border-b border-gray-100">
+              <TableCell colSpan={7} className="py-6 text-center text-gray-500">
+                Nenhuma nota fiscal encontrada.
+              </TableCell>
+            </TableRow>
+            {Array.from({ length: FIXED_ROW_COUNT - 1 }).map((_, index) => (
+              <TableRow key={`empty-${index}`} className="h-[52px] border-b border-gray-100">
+                {Array.from({ length: 7 }).map((_, cellIndex) => (
+                  <TableCell key={`empty-cell-${index}-${cellIndex}`} className="py-4 px-6 h-[52px]"></TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </>
+        );
+      }
+
+      return (
+        <>
+          {notas.map((nota) => {
+            // Verificar se a nota é um objeto válido com as propriedades necessárias
+            if (!nota || !nota.id) {
+              console.log('Nota inválida encontrada:', nota);
+              return null;
+            }
+            
+            return (
+              <TableRow key={nota.id} className="hover:bg-gray-50 h-[52px] border-b border-gray-100">
+                <TableCell className="py-4 px-6 text-sm text-gray-900 h-[52px]">
+                  {nota.data_emissao}
+                </TableCell>
+                <TableCell className="py-4 px-6 text-sm text-gray-900 h-[52px]">
+                  {nota.cnpj_prestador}
+                </TableCell>
+                <TableCell className="py-4 px-6 text-sm text-gray-900 h-[52px]">
+                  {nota.numero_nf}
+                </TableCell>
+                <TableCell className="py-4 px-6 text-sm text-gray-900 h-[52px]">
+                  {nota.valor_total ? formatCurrency(nota.valor_total) : 'R$ 0,00'}
+                </TableCell>
+                <TableCell className="py-4 px-6 text-sm h-[52px]">
+                  {nota.status ? renderStatusBadge(nota.status) : '-'}
+                </TableCell>
+                <TableCell className="py-4 px-6 text-sm text-gray-900 h-[52px]">
+                  {nota.motivos_pendencia?.motivo !== "-" ? nota.motivos_pendencia?.motivo : <span className="text-gray-400">-</span>}
+                </TableCell>
+                <TableCell className="py-4 px-6 text-sm text-gray-500 h-[52px]">
+                  <div className="flex space-x-2">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => onAccessPDF(nota)}
+                            className="text-xs text-secondary border-secondary hover:bg-secondary hover:text-white"
+                          >
+                            Acessar PDF
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Visualizar o PDF da nota fiscal</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    
+                    {nota.status === "pendente" && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => onCorrect(nota)}
+                              className="text-xs"
+                            >
+                              Corrigir
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Corrigir informações da nota</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                  </div>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </>
       );
     };
 
@@ -137,113 +263,7 @@ export const NotasTable = forwardRef<NotasTableRef, NotasTableProps>(
             </TableRow>
           </TableHeader>
           <TableBody className="bg-white">
-            {loading ? (
-              // Loading state - single row with loading indicator
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-12">
-                  <div className="flex flex-col justify-center items-center">
-                    <div className="flex justify-center items-center space-x-4 mb-4">
-                      <div className="w-3 h-3 bg-primary rounded-full opacity-70 animate-[loader-pulse_1.2s_ease-in-out_infinite]"></div>
-                      <div className="w-3 h-3 bg-primary rounded-full opacity-70 animate-[loader-pulse_1.2s_ease-in-out_infinite_0.2s]"></div>
-                      <div className="w-3 h-3 bg-primary rounded-full opacity-70 animate-[loader-pulse_1.2s_ease-in-out_infinite_0.4s]"></div>
-                    </div>
-                    <span className="text-gray-500 font-medium">Carregando notas...</span>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : notas.length === 0 ? (
-              // Empty state - "no results" message + empty rows to maintain fixed height
-              <>
-                <TableRow className="h-[52px] border-b border-gray-100">
-                  <TableCell colSpan={7} className="py-6 text-center text-gray-500">
-                    Nenhuma nota fiscal encontrada.
-                  </TableCell>
-                </TableRow>
-                {Array.from({ length: FIXED_ROW_COUNT - 1 }).map((_, index) => (
-                  <TableRow key={`empty-${index}`} className="h-[52px] border-b border-gray-100">
-                    {Array.from({ length: 7 }).map((_, cellIndex) => (
-                      <TableCell key={`empty-cell-${index}-${cellIndex}`} className="py-4 px-6 h-[52px]"></TableCell>
-                    ))}
-                  </TableRow>
-                ))}
-              </>
-            ) : (
-              // Data rows + empty rows if needed to maintain fixed height
-              <>
-                {notas.map((nota) => (
-                  <TableRow key={nota.id} className="hover:bg-gray-50 h-[52px] border-b border-gray-100">
-                    <TableCell className="py-4 px-6 text-sm text-gray-900 h-[52px]">
-                      {nota.data_emissao}
-                    </TableCell>
-                    <TableCell className="py-4 px-6 text-sm text-gray-900 h-[52px]">
-                      {nota.cnpj_prestador}
-                    </TableCell>
-                    <TableCell className="py-4 px-6 text-sm text-gray-900 h-[52px]">
-                      {nota.numero_nf}
-                    </TableCell>
-                    <TableCell className="py-4 px-6 text-sm text-gray-900 h-[52px]">
-                      {nota.valor_total}
-                    </TableCell>
-                    <TableCell className="py-4 px-6 text-sm h-[52px]">
-                      {renderStatusBadge(nota.status)}
-                    </TableCell>
-                    <TableCell className="py-4 px-6 text-sm text-gray-900 h-[52px]">
-                      {nota.motivos_pendencia?.motivo !== "-" ? nota.motivos_pendencia?.motivo : <span className="text-gray-400">-</span>}
-                    </TableCell>
-                    <TableCell className="py-4 px-6 text-sm text-gray-500 h-[52px]">
-                      <div className="flex space-x-2">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => onAccessPDF(nota)}
-                                className="text-xs text-secondary border-secondary hover:bg-secondary hover:text-white"
-                              >
-                                Acessar PDF
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Visualizar o PDF da nota fiscal</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                        
-                        {nota.status === "pendente" && (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="default"
-                                  size="sm"
-                                  onClick={() => onCorrect(nota)}
-                                  className="text-xs"
-                                >
-                                  Corrigir
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Corrigir informações da nota</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                
-                {/* Add empty rows if needed to maintain fixed height */}
-                {notas.length < FIXED_ROW_COUNT && Array.from({ length: FIXED_ROW_COUNT - notas.length }).map((_, index) => (
-                  <TableRow key={`filler-${index}`} className="h-[52px] border-b border-gray-100">
-                    {Array.from({ length: 7 }).map((_, cellIndex) => (
-                      <TableCell key={`filler-cell-${index}-${cellIndex}`} className="py-4 px-6 h-[52px]"></TableCell>
-                    ))}
-                  </TableRow>
-                ))}
-              </>
-            )}
+            {renderTableContent()}
           </TableBody>
         </Table>
       </div>

@@ -1,5 +1,5 @@
-import { useCallback, useRef } from "react";
-import { NotaFiscal, NotasParams } from "../types";
+import { useRef } from "react";
+import { NotasParams } from "../types";
 import { NotasTableRef } from "../components/NotasTable";
 import { useNotasFiscais } from "./useNotasFiscais";
 

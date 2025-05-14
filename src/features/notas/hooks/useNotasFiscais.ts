@@ -1,6 +1,6 @@
-import { useCallback, useState, useEffect } from 'react'
-import { NotaFiscal, NotasParams } from '../types'
-import axios from 'axios'
+import { useCallback, useState, useEffect, useRef } from 'react'
+import { NotaFiscal, NotasParams, NotaStatusEnum } from '../types'
+import axios, { CancelTokenSource } from 'axios'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 
 // Interface SortConfig interna para evitar conflitos de tipo
@@ -33,6 +33,9 @@ export function useNotasFiscais(initialParams: NotasParams = {}) {
         field: null,
         direction: 'desc'
     });
+    
+    // Referência para o token de cancelamento da última requisição
+    const cancelTokenRef = useRef<CancelTokenSource | null>(null);
     
     // Obter o token de autenticação
     const { getAuthToken } = useAuth();
@@ -72,6 +75,14 @@ export function useNotasFiscais(initialParams: NotasParams = {}) {
     // Função para buscar notas da API
     const fetchNotasFromAPI = useCallback(async (params: NotasParams) => {
         try {
+            // Cancelar requisição anterior se existir
+            if (cancelTokenRef.current) {
+                cancelTokenRef.current.cancel('Operação cancelada devido a nova requisição');
+            }
+            
+            // Criar novo token de cancelamento
+            cancelTokenRef.current = axios.CancelToken.source();
+            
             // Obter o token de autenticação
             const token = getAuthToken();
             
@@ -86,9 +97,9 @@ export function useNotasFiscais(initialParams: NotasParams = {}) {
             
             // Adicionar parâmetro de status se existir
             if (params.status) {
-                if (params.status === 'pendente') {
+                if (params.status === NotaStatusEnum.PENDENTE) {
                     url = `${url}?status=pendente`;
-                } else if (params.status === 'em_processamento') {
+                } else if (params.status === NotaStatusEnum.EM_PROCESSAMENTO) {
                     url = `${url}?status=em_processamento`;
                 } else {
                     url = `${url}?status=${params.status}`;
@@ -99,32 +110,52 @@ export function useNotasFiscais(initialParams: NotasParams = {}) {
             
             // Adicionar outros parâmetros se existirem
             if (params.fornecedor) {
-                url = `${url}&fornecedor="${params.fornecedor}"`;
+                url = `${url}${url.includes('?') ? '&' : '?'}fornecedor="${params.fornecedor}"`;
             }
             
             if (params.sort) {
-                url = `${url}&sort=${params.sort}&order=${params.order || 'asc'}`;
+                url = `${url}${url.includes('?') ? '&' : '?'}sort=${params.sort}&order=${params.order || 'asc'}`;
             }
             
-            // Fazer a chamada à API com os headers de autenticação
-            const response = await axios.get(url, { headers });
+            // Simular um delay para dar tempo de cancelar se o usuário trocar de filtro rapidamente
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+            // Fazer a chamada à API com os headers de autenticação e token de cancelamento
+            const response = await axios.get(url, { 
+                headers,
+                cancelToken: cancelTokenRef.current.token
+            });
             
             // Processar a resposta para o formato esperado
-            let responseData = response.data;
+            const responseData = response.data;
             
-            // Se a resposta for um array direto, usar diretamente
+            // Se a resposta for um array direto
             if (Array.isArray(responseData)) {
+                // Verificar se é um array com um objeto vazio (caso de nenhum resultado)
+                if (responseData.length === 1 && Object.keys(responseData[0]).length === 0) {
+                    console.log('Array com objeto vazio detectado, retornando array vazio');
+                    return [];
+                }
                 return responseData;
             }
             
             // Se a resposta tiver um campo notas, usar esse campo
             if (responseData.notas && Array.isArray(responseData.notas)) {
+                // Verificar se é um array com um objeto vazio (caso de nenhum resultado)
+                if (responseData.notas.length === 1 && Object.keys(responseData.notas[0]).length === 0) {
+                    console.log('Array com objeto vazio detectado em notas, retornando array vazio');
+                    return [];
+                }
                 return responseData.notas;
             }
             
             console.warn('Formato de resposta inesperado:', responseData);
             return [];
         } catch (error) {
+            if (axios.isCancel(error)) {
+                console.log('Requisição cancelada:', error.message);
+                return [];
+            }
             console.error('Erro ao buscar notas fiscais:', error);
             throw new Error('Falha ao buscar notas fiscais da API');
         }
@@ -147,24 +178,35 @@ export function useNotasFiscais(initialParams: NotasParams = {}) {
             // Buscar todos os dados da API
             const notasData = await fetchNotasFromAPI(params);
             
+            console.log('Dados recebidos da API:', notasData);
+            
             // Verificar se os dados estão no formato esperado
             if (Array.isArray(notasData)) {
-                // Guardar todos os dados
-                setAllNotas(notasData);
-                
-                // Calcular total de páginas
-                const total = notasData.length;
-                const totalPages = Math.ceil(total / ITEMS_PER_PAGE);
-                setTotalPages(totalPages || 1);
-                
-                // Definir página atual (garantir que esteja dentro dos limites)
-                const newPage = params.page || 1;
-                const validPage = Math.min(Math.max(1, newPage), totalPages || 1);
-                setPage(validPage);
-                
-                // Aplicar paginação e atualizar estado
-                const paginatedData = paginateData(notasData, validPage);
-                setNotas(paginatedData);
+                // Tratar caso de array vazio ou com objeto vazio
+                if (notasData.length === 0 || (notasData.length === 1 && Object.keys(notasData[0]).length === 0)) {
+                    console.log('Array vazio ou com objeto vazio - exibindo lista vazia');
+                    setAllNotas([]);
+                    setNotas([]);
+                    setPage(1);
+                    setTotalPages(1);
+                } else {
+                    // Guardar todos os dados
+                    setAllNotas(notasData);
+                    
+                    // Calcular total de páginas
+                    const total = notasData.length;
+                    const totalPages = Math.ceil(total / ITEMS_PER_PAGE);
+                    setTotalPages(totalPages || 1);
+                    
+                    // Definir página atual (garantir que esteja dentro dos limites)
+                    const newPage = params.page || 1;
+                    const validPage = Math.min(Math.max(1, newPage), totalPages || 1);
+                    setPage(validPage);
+                    
+                    // Aplicar paginação e atualizar estado
+                    const paginatedData = paginateData(notasData, validPage);
+                    setNotas(paginatedData);
+                }
             } else {
                 console.warn('Formato de resposta inesperado:', notasData);
                 setAllNotas([]);
@@ -182,19 +224,28 @@ export function useNotasFiscais(initialParams: NotasParams = {}) {
             setNotas([]);
         } finally {
             // Garantir que o estado de carregamento seja atualizado apenas quando todas as operações terminarem
-            setLoading(false);
+            setTimeout(() => {
+                setLoading(false);
+            }, 700);
         }
     }, [fetchNotasFromAPI, fetchCounters, paginateData]);
 
     // Efeito para carregar as notas iniciais
     useEffect(() => {
-        // Usar o status inicial ou 'all' se não houver status
-        const initialStatus = initialParams.status || '';
+        // Determinar o status inicial
+        let initialStatus = initialParams.status;
         
         filterNotas({
             status: initialStatus,
             limit: initialParams.limit || 7
         });
+        
+        // Limpar token de cancelamento ao desmontar
+        return () => {
+            if (cancelTokenRef.current) {
+                cancelTokenRef.current.cancel('Componente desmontado');
+            }
+        };
     }, [filterNotas, initialParams.limit, initialParams.status]);
     
     // Função para lidar com a mudança de filtro
@@ -202,11 +253,11 @@ export function useNotasFiscais(initialParams: NotasParams = {}) {
         setActiveFilter(filter);
         
         // Determinar o valor do status para a URL
-        let statusParam = '';
+        let statusParam: NotaStatusEnum | undefined = undefined;
         if (filter === 'pendente') {
-            statusParam = 'pendente';
+            statusParam = NotaStatusEnum.PENDENTE;
         } else if (filter === 'em_processamento') {
-            statusParam = 'em_processamento';
+            statusParam = NotaStatusEnum.EM_PROCESSAMENTO;
         }
         
         filterNotas({
@@ -223,11 +274,11 @@ export function useNotasFiscais(initialParams: NotasParams = {}) {
         setSearchTerm(term);
         
         // Determinar o status correto para a URL
-        let statusParam = '';
+        let statusParam: NotaStatusEnum | undefined = undefined;
         if (activeFilter === 'pendente') {
-            statusParam = 'pendente';
+            statusParam = NotaStatusEnum.PENDENTE;
         } else if (activeFilter === 'em_processamento') {
-            statusParam = 'em_processamento';
+            statusParam = NotaStatusEnum.EM_PROCESSAMENTO;
         }
         
         filterNotas({
@@ -327,11 +378,11 @@ export function useNotasFiscais(initialParams: NotasParams = {}) {
             );
             
             // Determinar o status correto para a URL
-            let statusParam = '';
+            let statusParam: NotaStatusEnum | undefined = undefined;
             if (activeFilter === 'pendente') {
-                statusParam = 'pendente';
+                statusParam = NotaStatusEnum.PENDENTE;
             } else if (activeFilter === 'em_processamento') {
-                statusParam = 'em_processamento';
+                statusParam = NotaStatusEnum.EM_PROCESSAMENTO;
             }
             
             // Recarregar as notas para refletir as mudanças

@@ -1,7 +1,3 @@
-/**
- * Define os status possíveis para uma nota fiscal
- */
-export type NotaStatus = "pendente" | "em_processamento" | "aprovado" | "rejeitado";
 
 /**
  * Representa uma nota fiscal no sistema
@@ -15,7 +11,7 @@ export interface NotaFiscal {
     item_lista_serv?: string;
     discriminacao?: string;
     pricod?: string;
-    status: NotaStatus | string;
+    status: NotaStatusEnum;
     motivos_pendencia?: {
         motivo: string;
     };
@@ -36,7 +32,7 @@ export interface NotaFiscal {
 export interface NotasParams {
     page?: number;
     limit?: number;
-    status?: string;
+    status?: NotaStatusEnum;
     fornecedor?: string;
     sort?: string;
     order?: 'asc' | 'desc';
@@ -71,23 +67,11 @@ export interface NotaActionConfig {
 }
 
 /**
- * Dados para adicionar uma nova nota fiscal
+ * Enum para os status possíveis de uma nota fiscal
  */
-export interface NotaAddData {
-    numero: string;
-    fornecedor: string;
-    dataEmissao: string;
-    valor: string;
+export enum NotaStatusEnum {
+    PENDENTE = 'pendente',
+    EM_PROCESSAMENTO = 'em_processamento',
+    APROVADO = 'aprovado',
+    RECUSADO = 'recusado'
 }
-
-/**
- * Dados para atualizar uma nota fiscal existente
- */
-export interface NotaUpdateData {
-    numero?: string;
-    fornecedor?: string;
-    dataEmissao?: string;
-    valor?: string;
-    status?: NotaStatus;
-    motivo?: string;
-} 

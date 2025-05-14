@@ -7,7 +7,7 @@ import { Search, ChevronDown } from "lucide-react"
 import { HistoricoTable } from "@/features/historico/components/HistoricoTable"
 import { useHistoricoNotas } from "@/features/historico/hooks/useHistoricoNotas"
 import { Pagination } from "@/shared/components/common/pagination"
-import { NotaFiscal } from "../types"
+import { NotaFiscal, NotaStatusEnum } from "../types"
 import { useEffect } from "react"
 
 /**
@@ -139,7 +139,7 @@ export function HistoricoPage() {
                 <Button 
                   variant="link" 
                   className="text-primary ml-2"
-                  onClick={() => fetchNotas({ limit: 9, status: 'pendente' })}
+                  onClick={() => fetchNotas({ limit: 9, status: NotaStatusEnum.PENDENTE })}
                 >
                   Tentar novamente
                 </Button>

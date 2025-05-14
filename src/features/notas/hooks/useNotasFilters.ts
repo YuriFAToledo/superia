@@ -1,12 +1,12 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useNotasFiscais } from './useNotasFiscais';
-import { NotasParams } from '../types';
+import { NotasParams, NotaStatusEnum } from '../types';
 
 /**
  * Interface que estende NotasParams para incluir parâmetros adicionais do filtro
  */
 interface NotasFiltersParams extends NotasParams {
-    initialFilter?: string | null;
+    initialFilter?: NotaStatusEnum | null;
     initialSearchTerm?: string;
     limit?: number;
 }
@@ -17,8 +17,12 @@ interface NotasFiltersParams extends NotasParams {
  */
 export function useNotasFilters(initialParams: NotasFiltersParams = {}) {
     // Estados para filtros
-    const [activeFilter, setActiveFilter] = useState<string | null>(initialParams.initialFilter || null);
-    const [searchTerm, setSearchTerm] = useState(initialParams.initialSearchTerm || '');
+    const [activeFilter, setActiveFilter] = useState<NotaStatusEnum | null>(
+        initialParams.initialFilter || null
+    );
+    const [searchTerm, setSearchTerm] = useState(
+        initialParams.initialSearchTerm || ''
+    );
     
     // Integração com o hook base
     const notasHook = useNotasFiscais({
@@ -28,28 +32,26 @@ export function useNotasFilters(initialParams: NotasFiltersParams = {}) {
     });
     
     // Função para alterar o filtro (Todas, Pendentes, Em Processamento)
-    const handleFilterChange = useCallback((filter: string | null) => {
+    const handleFilterChange = useCallback((filter: NotaStatusEnum | null) => {
         setActiveFilter(filter);
         
         // Ativar loading enquanto busca
         notasHook.setLoading(true);
         
         // Determinar o valor do status para a URL
-        let statusParam = '';
-        if (filter === 'pendente') {
-            statusParam = 'pendente';
-        } else if (filter === 'em_processamento') {
-            statusParam = 'em_processamento';
+        let statusParam = undefined;
+        if (filter === NotaStatusEnum.PENDENTE) {
+            statusParam = NotaStatusEnum.PENDENTE;
+        } else if (filter === NotaStatusEnum.EM_PROCESSAMENTO) {
+            statusParam = NotaStatusEnum.EM_PROCESSAMENTO;
         }
         
-        // Simular atraso para UX de loading (remover em produção)
-        setTimeout(() => {
-            notasHook.filterNotas({
-                status: statusParam,
-                page: 1,
-                fornecedor: searchTerm || undefined,
-            });
-        }, 300);
+        // A chamada ao filterNotas já tem um atraso interno de 300ms
+        notasHook.filterNotas({
+            status: statusParam,
+            page: 1,
+            fornecedor: searchTerm || undefined,
+        });
     }, [notasHook, searchTerm]);
     
     // Função para realizar busca por termo
@@ -60,22 +62,37 @@ export function useNotasFilters(initialParams: NotasFiltersParams = {}) {
         notasHook.setLoading(true);
         
         // Determinar o status correto para a URL
-        let statusParam = '';
-        if (activeFilter === 'pendente') {
-            statusParam = 'pendente';
-        } else if (activeFilter === 'em_processamento') {
-            statusParam = 'em_processamento';
+        let statusParam = undefined;
+        if (activeFilter === NotaStatusEnum.PENDENTE) {
+            statusParam = NotaStatusEnum.PENDENTE;
+        } else if (activeFilter === NotaStatusEnum.EM_PROCESSAMENTO) {
+            statusParam = NotaStatusEnum.EM_PROCESSAMENTO;
         }
         
-        // Simular atraso para UX de loading (remover em produção)
-        setTimeout(() => {
-            notasHook.filterNotas({
-                status: statusParam,
-                page: 1,
-                fornecedor: term || undefined,
-            });
-        }, 300);
+        // A chamada ao filterNotas já tem um atraso interno de 300ms
+        notasHook.filterNotas({
+            status: statusParam,
+            page: 1,
+            fornecedor: term || undefined,
+        });
     }, [notasHook, activeFilter]);
+    
+    // Carregar dados com o filtro e busca iniciais quando o componente montar
+    useEffect(() => {
+        // Determinar o valor do status para a URL
+        let statusParam = undefined;
+        if (activeFilter === NotaStatusEnum.PENDENTE) {
+            statusParam = NotaStatusEnum.PENDENTE;
+        } else if (activeFilter === NotaStatusEnum.EM_PROCESSAMENTO) {
+            statusParam = NotaStatusEnum.EM_PROCESSAMENTO;
+        }
+        
+        notasHook.filterNotas({
+            status: statusParam,
+            page: 1,
+            fornecedor: searchTerm || undefined,
+        });
+    }, []);
     
     return {
         ...notasHook,
