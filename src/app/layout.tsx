@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Geologica, Geist_Mono } from "next/font/google";
-import { AuthProvider } from "@/hooks/useAuth";
-import { Toaster } from "@/components/ui/sonner";
+import { AuthProvider } from "@/features/auth/hooks/useAuth";
 import "../styles/globals.css";
 
 const geistSans = Geologica({

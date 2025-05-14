@@ -2,13 +2,14 @@
 
 import { FileText, FolderClock, LogOut, Settings2 } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { useEffect, useState } from "react"
 
-import { Separator } from "@/components/ui/separator"
-import NavItem from "../ui/nav-item"
-import { createBrowserSupabaseClient } from "@/lib/supabase"
-import { Button } from "@/components/ui/button"
+import { Separator } from "@/shared/components/ui/separator"
+import NavItem from "@/shared/components/ui/nav-item"
+import { createBrowserSupabaseClient } from "@/shared/lib/supabase"
+import { Button } from "@/shared/components/ui/button"
 
 const NavItems = [
     { label: 'Notas fiscais', href: '/notas', icon: FileText },
@@ -61,7 +62,7 @@ export default function Sidebar() {
                 {/* Logo */}
                 <div className="flex items-center justify-center mt-12">
                     <Link href="/notas">
-                        <img src="/logo.svg" alt="Superia" className="w-36 h-7" />
+                        <Image src="/logo.svg" alt="Superia" width={200} height={200} />
                     </Link>
                 </div>
 
@@ -94,7 +95,7 @@ export default function Sidebar() {
                 
                 <Button 
                     variant="outline" 
-                    className="w-full flex items-center justify-center gap-2 border-gray-200 mt-1"
+                    className="w-full flex items-center justify-center gap-2 border-gray-200 mt-1 cursor-pointer"
                     onClick={handleLogout}
                 >
                     <LogOut size={16} />

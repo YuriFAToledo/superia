@@ -1,8 +1,8 @@
 'use client'
 
-import { MembrosSection } from "@/components/configuracoes/MembrosSection"
-import { UserProfileCard } from "@/components/configuracoes/UserProfileCard"
-import { useConfiguracoes } from "@/hooks/useConfiguracoes"
+import { MembrosSection } from "@/features/configuracoes/components/MembrosSection"
+import { UserProfileCard } from "@/features/configuracoes/components/UserProfileCard"
+import { useConfiguracoes } from "@/features/configuracoes/hooks/useConfiguracoes"
 
 export default function Configuracoes() {
     const {
