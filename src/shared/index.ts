@@ -1,5 +1,4 @@
 // Componentes compartilhados
-export * from './components/layout/Navbar copy';
 export * from './components/ui';
 
 // Utilidades compartilhadas

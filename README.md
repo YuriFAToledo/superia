@@ -5,20 +5,48 @@ Uma aplicação moderna construída com Next.js, TypeScript e Supabase para aute
 ## Tecnologias Utilizadas
 
 - Next.js 15+
-- TypeScript
+- React 19+
+- TypeScript 5+
 - Supabase (Autenticação)
-- TailwindCSS
+- TailwindCSS 4
+- Node.js 24+
+- Radix UI (Componentes de UI acessíveis)
+- Zod (Validação de formulários)
+- Jest + React Testing Library (Testes)
 
-## Configuração
+## Requisitos do Sistema
 
-### 1. Clone o repositório
+- **Node.js**: versão 24.0.1 ou superior (recomendado usar [nvm](https://github.com/nvm-sh/nvm) ou [asdf](https://asdf-vm.com/))
+- **Git**: para clonar o repositório
+- **Navegador moderno**: Chrome, Firefox, Edge ou Safari recentes
+- **Conta no Supabase**: necessária para configuração da autenticação
+
+## Configuração Passo a Passo
+
+### 1. Preparação do Ambiente
+
+Certifique-se de ter o Node.js instalado na versão correta:
+
+```bash
+# Verificar a versão do Node.js
+node -v
+# Deve mostrar v24.0.1 ou superior
+```
+
+Se você utiliza o `asdf` como gerenciador de versões, o arquivo `.tool-versions` já está configurado e você pode simplesmente executar:
+
+```bash
+asdf install
+```
+
+### 2. Clone o repositório
 
 ```bash
 git clone https://github.com/seu-usuario/superia.git
 cd superia
 ```
 
-### 2. Instale as dependências
+### 3. Instale as dependências
 
 ```bash
 npm install
@@ -28,22 +56,44 @@ yarn install
 pnpm install
 ```
 
-### 3. Configure o Supabase
+### 4. Configure o Supabase
 
-1. Crie uma conta em [Supabase](https://supabase.com)
-2. Crie um novo projeto
-3. No painel do Supabase, vá para Settings > API
-4. Copie a URL e a anon key
-5. Crie um arquivo `.env.local` na raiz do projeto usando o modelo em `src/lib/env.example`
+#### 4.1 Crie uma conta e um projeto no Supabase
+
+1. Crie uma conta gratuita em [Supabase](https://supabase.com) se ainda não tiver
+2. Crie um novo projeto no Dashboard do Supabase
+3. Anote o nome do seu projeto e a região selecionada
+
+#### 4.2 Obtenha as credenciais necessárias
+
+1. No Dashboard do Supabase, acesse **Configurações do Projeto > API**
+2. Você encontrará:
+   - **Project URL**: Para a variável `NEXT_PUBLIC_SUPABASE_URL`
+   - **anon key**: Para a variável `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - **service_role key**: Para a variável `SUPABASE_SERVICE_ROLE_KEY`
+
+#### 4.3 Configure as variáveis de ambiente
+
+1. Crie um arquivo `.env.local` na raiz do projeto (onde está o package.json)
+2. Adicione as seguintes variáveis:
 
 ```
-NEXT_PUBLIC_SUPABASE_URL=sua-url-do-supabase
-NEXT_PUBLIC_SUPABASE_ANON_KEY=sua-chave-anon-do-supabase
-SUPABASE_SERVICE_ROLE_KEY=sua-chave-de-servico-do-supabase
-SITE_URL=http://localhost:3000
+NEXT_PUBLIC_SUPABASE_URL=https://seu-projeto.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=sua-chave-anon-aqui
+SUPABASE_SERVICE_ROLE_KEY=sua-chave-de-servico-aqui
 ```
 
-### 4. Inicie o servidor de desenvolvimento
+> **⚠️ Importante**: Nunca compartilhe ou cometa o arquivo `.env.local` no Git. Ele já está incluído no `.gitignore`.
+
+#### 4.4 Configuração opcional da interface do Supabase
+
+Para uma experiência completa, você pode configurar as seguintes opções no Dashboard do Supabase:
+
+1. **Autenticação > Providers**: Ative Email/Password e/ou provedores OAuth como Google, GitHub
+2. **Autenticação > Email Templates**: Personalize os emails enviados aos usuários
+3. **Autenticação > URL Configuration**: Configure as URLs de redirecionamento
+
+### 5. Inicie o servidor de desenvolvimento
 
 ```bash
 npm run dev
@@ -55,13 +105,40 @@ pnpm dev
 
 Abra [http://localhost:3000](http://localhost:3000) no seu navegador para ver o resultado.
 
+### 6. Verificação da configuração
+
+Para verificar se suas variáveis de ambiente foram carregadas corretamente, visite:
+http://localhost:3000/api/env (esta rota está disponível apenas em ambiente de desenvolvimento)
+
+## Comandos Disponíveis
+
+```bash
+# Desenvolvimento
+npm run dev        # Inicia o servidor de desenvolvimento com Turbopack
+
+# Build e produção
+npm run build      # Cria build de produção
+npm run start      # Inicia o servidor com a build de produção
+
+# Testes
+npm run test       # Executa todos os testes
+npm run test:watch # Executa testes em modo watch
+
+# Linting
+npm run lint       # Executa o ESLint para verificar código
+```
+
 ## Estrutura do Projeto
 
-- `src/app` - Páginas e layouts da aplicação
-- `src/components` - Componentes reutilizáveis
-- `src/hooks` - Hooks personalizados (incluindo useAuth)
-- `src/lib` - Utilitários e configurações
+A aplicação segue uma estrutura organizada por recursos (features) e camadas:
+
+- `src/app` - Páginas e layouts da aplicação (App Router do Next.js)
+- `src/components` - Componentes reutilizáveis globais
+- `src/features` - Módulos organizados por funcionalidade
+- `src/shared` - Utilitários, hooks e serviços compartilhados
+- `src/styles` - Estilos globais da aplicação
 - `src/middleware.ts` - Middleware para controle de autenticação
+- `src/utils` - Funções utilitárias
 
 ## Funcionalidades
 
@@ -69,142 +146,110 @@ Abra [http://localhost:3000](http://localhost:3000) no seu navegador para ver o 
 - Proteção de rotas via middleware
 - Gerenciamento de sessão e tokens
 - Redirecionamentos inteligentes baseados no status de autenticação
+- UI moderna e responsiva com Tailwind CSS
+- Formulários com validação usando Zod
+- Acesso a dados via Supabase
 
 ## Fluxo de Autenticação
 
 1. O usuário se registra na página `/register`
-2. O Supabase envia um email de confirmação (opcional, pode ser desativado no painel do Supabase)
+2. O Supabase envia um email de confirmação (opcional, configurável no painel do Supabase)
 3. O usuário confirma o email e é redirecionado para `/auth/callback`
 4. O middleware processa o token e estabelece a sessão
 5. O usuário é redirecionado para o dashboard
 
-## Customização
+## Customização e Desenvolvimento
 
-Você pode personalizar a UI e adicionar funcionalidades conforme necessário. A estrutura básica de autenticação já está configurada e funcional.
+### Estilos e Componentes
+O projeto utiliza TailwindCSS 4 e componentes do Radix UI para uma interface acessível e moderna.
 
-## Nota para Desenvolvedores
+### Formulários
+Os formulários utilizam Zod para validação de dados, garantindo integridade e feedback ao usuário.
 
-Este projeto segue as melhores práticas de autenticação com Supabase e Next.js. A autenticação é gerenciada pelo middleware do Next.js e o hook `useAuth` fornece uma API fácil de usar para gerenciar o estado de autenticação.
+### Testes
+A aplicação utiliza Jest e React Testing Library para testes unitários e de integração.
 
-Para implementar funcionalidades adicionais, recomendamos:
-- Adicionar validação de formulário com Zod ou Yup
-- Implementar oAuth para login com Google, GitHub, etc.
-- Criar um painel de administração para gerenciar usuários
+## Arquitetura
 
-# Arquitetura Clean para Next.js
+O projeto implementa uma versão adaptada da Clean Architecture para aplicações Next.js, com foco em:
 
-Este projeto implementa uma arquitetura limpa e bem organizada para aplicações Next.js, seguindo princípios de Clean Architecture e separation of concerns.
+1. **Separação de responsabilidades**
+2. **Testabilidade**
+3. **Manutenibilidade**
 
-## Estrutura de Pastas
-
-O projeto segue uma estrutura orientada a features, com separação clara de responsabilidades:
+### Estrutura de Pastas Detalhada
 
 ```
 src/
-├── app/               # Páginas e rotas do Next.js
-├── api/               # API routes do Next.js
-├── components/        # Componentes compartilhados
-├── features/          # Módulos organizados por funcionalidade
-│   └── configuracoes/ # Exemplo de feature
-│       ├── components/  # Componentes específicos da feature
-│       ├── hooks/       # Hooks específicos da feature
-│       ├── services/    # Serviços para acesso a dados
-│       ├── tests/       # Testes unitários
-│       │   └── mocks/   # Mocks para testes
-│       └── types/       # Tipos e interfaces
-├── hooks/             # Hooks compartilhados
-├── lib/               # Configurações e utilitários de bibliotecas
-├── styles/            # Estilos globais
-└── utils/             # Funções utilitárias
+├── app/                  # Rotas e páginas usando o App Router do Next.js
+├── components/           # Componentes globais reutilizáveis 
+├── features/             # Módulos organizados por funcionalidade
+│   └── auth/             # Exemplo: Feature de autenticação
+│       ├── components/   # Componentes específicos da feature
+│       ├── hooks/        # Hooks específicos da feature (ex: useAuth)
+│       ├── services/     # Serviços para acesso a dados
+│       ├── types/        # Tipos e interfaces da feature
+│       └── utils/        # Utilitários específicos da feature
+├── shared/               # Código compartilhado entre features
+│   ├── hooks/            # Hooks compartilhados
+│   ├── services/         # Serviços compartilhados
+│   └── types/            # Tipos compartilhados
+├── middleware.ts         # Middleware do Next.js para autenticação
+├── utils/                # Funções utilitárias globais
+├── styles/               # Estilos globais
+└── types/                # Tipos e interfaces globais
 ```
 
-## Principais Camadas
 
-A arquitetura segue os princípios de Clean Architecture, com separação clara entre:
+## Deploy
 
-### 1. Camada de Apresentação (Components)
+### Opções de Deploy
 
-- Responsável pela UI e interação com usuário
-- Consome hooks e não implementa lógica de negócio
-- Focada em renderização e experiência do usuário
+O projeto pode ser facilmente implantado em:
 
-### 2. Camada de Lógica de Negócio (Hooks)
+1. **Vercel**: Integração natural com Next.js
+2. **Netlify**: Suporte para Next.js com funções serverless
+3. **Containers**: Docker para ambientes personalizados
 
-- Encapsula toda a lógica de negócio
-- Gerencia o estado da aplicação
-- Orquestra chamadas aos serviços
-- Implementa regras de negócio
-- Fornece dados formatados para os componentes
+### Preparação para Produção
 
-### 3. Camada de Acesso a Dados (Services)
+1. Configure as variáveis de ambiente no provedor escolhido
+2. Execute `npm run build` para verificar se a build está funcionando
+3. Conecte seu repositório Git à plataforma de deploy
 
-- Encapsula a comunicação com APIs externas (Supabase, etc.)
-- Abstrai detalhes de implementação da fonte de dados
-- Permite trocar a fonte de dados sem afetar as camadas superiores
-- Responsável por transformar dados externos em estruturas internas
+## Solução de Problemas
 
-### 4. Camada de Entidades e Tipos (Types)
+### Problemas Comuns
 
-- Define as estruturas de dados e interfaces utilizadas no sistema
-- Estabelece contratos entre as diferentes camadas
-- Independente de implementações específicas
+1. **Erro de variáveis de ambiente**: Verifique se o arquivo `.env.local` está configurado corretamente
+2. **Problemas de autenticação**: Verifique as configurações do Supabase no Dashboard
+3. **Erros de build**: Verifique a compatibilidade de versões no `package.json`
 
-## Exemplo: Feature de Configurações
+### Recursos de Ajuda
 
-A feature de Configurações demonstra bem esta arquitetura:
+- [Documentação do Next.js](https://nextjs.org/docs)
+- [Documentação do Supabase](https://supabase.com/docs)
+- [Troubleshooting do Next.js](https://nextjs.org/docs/messages)
 
-### Components
-Componentes React focados em renderização e delegando a lógica para hooks.
+## Contribuição
 
-### Hooks: useConfiguracoes
-- Gerencia estado interno (membros, formulários, paginação)
-- Implementa regras de negócio (validações, permissões)
-- Orquestra chamadas ao service layer
+Para contribuir com o projeto:
 
-### Services: memberService
-- Encapsula chamadas à API do Supabase 
-- Abstrai a complexidade do acesso a dados
-- Transforma dados do Supabase para o formato interno da aplicação
+1. Fork o repositório
+2. Crie uma branch para sua feature (`git checkout -b feature/amazing-feature`)
+3. Faça commit das suas mudanças (`git commit -m 'Add some amazing feature'`)
+4. Push para a branch (`git push origin feature/amazing-feature`)
+5. Abra um Pull Request
 
-### Types
-- Define interfaces como MemberAddData e MemberUpdateData
-- Estabelece contratos entre as diferentes camadas
+## Licença
 
-## Testes
+Este projeto está licenciado sob a licença MIT - consulte o arquivo LICENSE para detalhes.
 
-A arquitetura foi projetada para ser facilmente testável:
+## Recursos Adicionais
 
-- **Testes Unitários**: Para hooks e services isoladamente
-- **Mocks**: Implementação de mocks para dependências externas (Supabase)
-- **Jest + React Testing Library**: Para testar comportamento dos componentes
-
-### Estratégia de Testes:
-- Componentes: Testados por comportamento visível
-- Hooks: Testados por comportamento funcional
-- Services: Testados por interação com APIs externas
-
-## Benefícios da Arquitetura
-
-1. **Separação de Responsabilidades**: Cada camada tem uma função clara
-2. **Testabilidade**: Fácil mockar dependências externas
-3. **Manutenibilidade**: Mudanças em uma camada não afetam outras camadas
-4. **Escalabilidade**: Novas features seguem o mesmo padrão
-5. **Reutilização**: Componentes e lógica podem ser compartilhados entre features
-
-## Boas Práticas Adotadas
-
-1. **Tipagem Forte**: TypeScript em todo o projeto
-2. **Injeção de Dependências**: Serviços são injetados nos hooks
-3. **Single Responsibility**: Cada módulo tem uma única responsabilidade
-4. **DRY (Don't Repeat Yourself)**: Código reutilizado via hooks e serviços
-5. **Encapsulamento**: Detalhes de implementação escondidos atrás de interfaces
-6. **Imutabilidade**: Estado gerenciado de forma imutável via React hooks
-
-## Refatoração e Evolução
-
-Para evoluir esta arquitetura:
-
-1. Implementar gerenciamento de estado global (Context, Redux, Zustand) para dados compartilhados
-2. Adicionar camada de validação com bibliotecas como Zod ou Yup
-3. Implementar padrões de cache para otimizar chamadas repetidas
-4. Expandir a cobertura de testes com testes de integração
+- [Next.js Documentation](https://nextjs.org/docs)
+- [Supabase Documentation](https://supabase.com/docs)
+- [TailwindCSS Documentation](https://tailwindcss.com/docs)
+- [Radix UI Documentation](https://www.radix-ui.com/docs)
+- [TypeScript Documentation](https://www.typescriptlang.org/docs)
+- [Zod Documentation](https://zod.dev/)
