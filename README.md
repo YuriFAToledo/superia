@@ -152,9 +152,9 @@ A aplicação segue uma estrutura organizada por recursos (features) e camadas:
 
 ## Fluxo de Autenticação
 
-1. O usuário se registra na página `/register`
+1. O usuário admin manda um convite na página de configurações: `/configuracoes`
 2. O Supabase envia um email de confirmação (opcional, configurável no painel do Supabase)
-3. O usuário confirma o email e é redirecionado para `/auth/callback`
+3. O usuário confirma o email e é redirecionado para `/set-password`
 4. O middleware processa o token e estabelece a sessão
 5. O usuário é redirecionado para o dashboard
 
