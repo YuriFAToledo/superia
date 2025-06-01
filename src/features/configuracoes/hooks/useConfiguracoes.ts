@@ -1,8 +1,9 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useState, useCallback } from "react";
 import { User } from "@supabase/supabase-js";
 import { toast } from "sonner";
 import { memberService } from "../services/memberService";
 import { MemberAddData, MemberUpdateData } from "../types";
+import { validateMemberData, validateMemberUpdateData, isAdmin } from "../utils/memberUtils";
 
 /**
  * Hook para gerenciar a página de configurações
@@ -31,18 +32,9 @@ export function useConfiguracoes() {
   const [itemsPerPage] = useState(7);
 
   /**
-   * Busca os dados iniciais ao carregar a página
-   */
-  useEffect(() => {
-    fetchMembers(currentPage);
-    fetchCurrentUser();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage]);
-
-  /**
    * Busca o usuário atual
    */
-  const fetchCurrentUser = async () => {
+  const fetchCurrentUser = useCallback(async () => {
     try {
       const user = await memberService.getCurrentUser();
       
@@ -51,19 +43,18 @@ export function useConfiguracoes() {
         setEmail(user.email || "");
       }
     } catch (error) {
-      console.error("Erro ao buscar usuário atual:", error);
+      // Erro silencioso - não precisa notificar o usuário
     }
-  };
+  }, []);
 
   /**
    * Busca membros com paginação
    */
-  const fetchMembers = async (page: number = 1) => {
+  const fetchMembers = useCallback(async (page: number = 1) => {
     try {
       setLoadingMembers(true);
       
-      // Adicionar um delay artificial para melhorar a experiência de carregamento
-      // Em testes, este atraso pode ser evitado
+      // Delay artificial para melhorar UX (apenas em desenvolvimento)
       if (process.env.NODE_ENV !== 'test') {
         await new Promise(resolve => setTimeout(resolve, 500));
       }
@@ -77,30 +68,46 @@ export function useConfiguracoes() {
         setCurrentPage(adjustedPage);
       }
       
-      // Atualizar a lista de membros com os resultados paginados
       setMembers(users);
       setTotalPages(calculatedTotalPages);
     } catch (error: unknown) {
-      console.error("Erro ao buscar membros:", error);
       toast.error(error instanceof Error ? error.message : "Erro ao buscar membros");
     } finally {
       setLoadingMembers(false);
     }
-  };
+  }, [itemsPerPage]);
+
+  /**
+   * Reseta o formulário de adição de membro
+   */
+  const resetForm = useCallback(() => {
+    setNewMemberName("");
+    setNewMemberEmail("");
+    setNewMemberRole("user");
+    setIsDialogOpen(false);
+  }, []);
 
   /**
    * Adiciona um novo membro
    */
-  const handleAddMember = async (e: FormEvent) => {
+  const handleAddMember = useCallback(async (e: FormEvent) => {
     e.preventDefault();
     
-    if (!newMemberName || !newMemberEmail) {
-      toast.error("Por favor, preencha todos os campos obrigatórios.");
+    // Validar dados do formulário
+    const memberData: MemberAddData = {
+      name: newMemberName,
+      email: newMemberEmail,
+      role: newMemberRole
+    };
+    
+    const validationError = validateMemberData(memberData);
+    if (validationError) {
+      toast.error(validationError);
       return;
     }
 
-    // Verificar se o usuário atual é administrador
-    if (!currentUser?.user_metadata?.role || currentUser.user_metadata.role !== "admin") {
+    // Verificar permissões
+    if (!isAdmin(currentUser)) {
       toast.error("Apenas administradores podem adicionar novos membros.");
       return;
     }
@@ -108,41 +115,26 @@ export function useConfiguracoes() {
     try {
       setLoading(true);
       
-      const memberData: MemberAddData = {
-        name: newMemberName,
-        email: newMemberEmail,
-        role: newMemberRole
-      };
-      
       await memberService.addMember(memberData, window.location.origin);
       
-      // Mostrar toast de sucesso e resetar formulário
-      toast.success("Convite enviado com sucesso para o email " + newMemberEmail);
+      toast.success(`Convite enviado com sucesso para ${newMemberEmail}`);
       
-      // Resetar formulário e fechar o diálogo imediatamente
-      setNewMemberName("");
-      setNewMemberEmail("");
-      setNewMemberRole("user");
-      setIsDialogOpen(false);
-      
-      // Atualizar lista de membros
+      resetForm();
       await fetchMembers(currentPage);
     } catch (error: unknown) {
-      console.error("Erro ao adicionar membro:", error);
       toast.error(error instanceof Error ? error.message : "Erro ao adicionar membro");
     } finally {
       setLoading(false);
     }
-  };
+  }, [newMemberName, newMemberEmail, newMemberRole, currentUser, currentPage, fetchMembers, resetForm]);
 
   /**
    * Remove um membro
    */
-  const handleRemoveMember = async (id: string) => {
+  const handleRemoveMember = useCallback(async (id: string) => {
     if (!id) return;
     
-    // Verificar se o usuário atual é administrador
-    if (!currentUser?.user_metadata?.role || currentUser.user_metadata.role !== "admin") {
+    if (!isAdmin(currentUser)) {
       toast.error("Apenas administradores podem remover membros.");
       return;
     }
@@ -152,30 +144,37 @@ export function useConfiguracoes() {
       
       await memberService.removeMember(id);
       
-      // Atualizar lista de membros localmente
+      // Atualizar lista localmente primeiro para UX mais rápida
       setMembers(prev => prev.filter(member => member.id !== id));
       
       toast.success("Membro removido com sucesso!");
       
-      // Recarregar membros para manter consistência com a paginação
+      // Recarregar para manter consistência
       await fetchMembers(currentPage);
     } catch (error: unknown) {
-      console.error("Erro ao remover membro:", error);
       toast.error(error instanceof Error ? error.message : "Erro ao remover membro");
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentUser, currentPage, fetchMembers]);
 
   /**
    * Edita um membro existente
    */
-  const handleEditMember = async (id: string, userData: MemberUpdateData): Promise<boolean> => {
+  const handleEditMember = useCallback(async (id: string, userData: MemberUpdateData): Promise<boolean> => {
     if (!id) return false;
     
-    // Verificar se o usuário atual é administrador
-    if (!currentUser?.user_metadata?.role || currentUser.user_metadata.role !== "admin") {
-      toast.error("Apenas administradores podem editar membros.");
+    // Validar dados
+    const validationError = validateMemberUpdateData(userData);
+    if (validationError) {
+      toast.error(validationError);
+      return false;
+    }
+    
+    // Verificar permissões (admin ou o próprio usuário)
+    const isCurrentUser = id === currentUser?.id;
+    if (!isAdmin(currentUser) && !isCurrentUser) {
+      toast.error("Você não tem permissão para editar este membro.");
       return false;
     }
     
@@ -185,34 +184,30 @@ export function useConfiguracoes() {
       const success = await memberService.editMember(id, userData);
       
       if (success) {
-        // Mostrar alerta de sucesso
         toast.success("Usuário atualizado com sucesso!");
-        
-        // Atualizar lista de membros
         await fetchMembers(currentPage);
-        
         return true;
       }
       
       return false;
     } catch (error: unknown) {
-      console.error("Erro ao atualizar usuário:", error);
       toast.error(error instanceof Error ? error.message : "Erro ao atualizar usuário");
       return false;
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentUser, currentPage, fetchMembers]);
 
   /**
    * Reenvia convite ou reseta senha de um membro
    */
-  const handleResendInviteOrResetPassword = async (email: string) => {
+  const handleResendInviteOrResetPassword = useCallback(async (email: string) => {
     if (!email) return;
     
-    // Verificar se o usuário atual é administrador
-    if (!currentUser?.user_metadata?.role || currentUser.user_metadata.role !== "admin") {
-      toast.error("Apenas administradores podem enviar convites ou redefinir senhas.");
+    // Verificar permissões (admin ou o próprio usuário)
+    const isCurrentUserEmail = email === currentUser?.email;
+    if (!isAdmin(currentUser) && !isCurrentUserEmail) {
+      toast.error("Você não tem permissão para esta ação.");
       return;
     }
     
@@ -221,24 +216,28 @@ export function useConfiguracoes() {
       
       await memberService.resendInviteOrResetPassword(email, window.location.origin);
       
-      // Encontrar o usuário na lista atual de membros para determinar a mensagem
+      // Determinar mensagem baseada no status do usuário
       const user = members.find(u => u.email === email);
+      const message = user?.email_confirmed_at ? 
+        "Email para redefinição de senha enviado com sucesso!" : 
+        "Convite reenviado com sucesso!";
       
-      if (user?.email_confirmed_at) {
-        toast.success("Email para redefinição de senha enviado com sucesso!");
-      } else {
-        toast.success("Convite reenviado com sucesso!");
-      }
-      
-      // Atualizar a lista de membros
+      toast.success(message);
       await fetchMembers(currentPage);
     } catch (error: unknown) {
-      console.error("Erro ao reenviar convite/reset de senha:", error);
       toast.error(error instanceof Error ? error.message : "Erro ao processar solicitação");
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentUser, members, currentPage, fetchMembers]);
+
+  /**
+   * Buscar dados iniciais ao carregar a página
+   */
+  useEffect(() => {
+    fetchMembers(currentPage);
+    fetchCurrentUser();
+  }, [currentPage, fetchMembers, fetchCurrentUser]);
 
   return {
     // Estado do usuário e email
@@ -271,6 +270,7 @@ export function useConfiguracoes() {
     handleAddMember,
     handleRemoveMember,
     handleEditMember,
-    handleResendInviteOrResetPassword
+    handleResendInviteOrResetPassword,
+    resetForm
   };
 } 

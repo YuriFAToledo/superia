@@ -183,7 +183,6 @@ export function useHistoricoNotas(initialParams: NotasParams = {}) {
             // Obter o token de autenticação
             const token = getAuthToken();
             
-            // Verificar se temos o caminho do PDF
             const nota = notas?.find(n => n.id === id);
             if (nota && nota.pdf_path) {
                 const response = await axios.get(`${API_URL}/pdf/${id}`, {

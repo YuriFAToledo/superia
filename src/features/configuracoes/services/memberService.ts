@@ -1,6 +1,7 @@
 import { createBrowserSupabaseClient, supabaseAdmin } from "@/shared/lib/supabase";
 import { User } from "@supabase/supabase-js";
 import { MemberAddData, MemberUpdateData } from "../types";
+import { validateMemberData, validateMemberUpdateData } from "../utils/memberUtils";
 
 /**
  * Serviço para gerenciar operações relacionadas a membros
@@ -14,13 +15,10 @@ export const memberService = {
       const supabase = createBrowserSupabaseClient();
       const { data: { user }, error } = await supabase.auth.getUser();
       
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
       
       return user;
     } catch (error) {
-      console.error("Erro ao buscar usuário atual:", error);
       return null;
     }
   },
@@ -33,21 +31,15 @@ export const memberService = {
     totalPages: number
   }> => {
     try {
-      // Supabase Auth Admin API não suporta paginação diretamente
-      // Então vamos buscar todos os usuários e fazer a paginação manualmente
       const { data, error } = await supabaseAdmin.auth.admin.listUsers();
       
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
       
       const allUsers = data.users || [];
-      
-      // Calcular o número total de páginas
       const totalCount = allUsers.length;
       const totalPages = Math.ceil(totalCount / itemsPerPage);
       
-      // Paginar os resultados manualmente
+      // Paginação manual
       const startIndex = (page - 1) * itemsPerPage;
       const endIndex = startIndex + itemsPerPage;
       const paginatedUsers = allUsers.slice(startIndex, endIndex);
@@ -57,8 +49,7 @@ export const memberService = {
         totalPages: totalPages > 0 ? totalPages : 1
       };
     } catch (error) {
-      console.error("Erro ao buscar membros:", error);
-      throw error;
+      throw new Error("Erro ao buscar membros");
     }
   },
 
@@ -67,29 +58,28 @@ export const memberService = {
    */
   addMember: async (memberData: MemberAddData, origin: string): Promise<User> => {
     try {
-      const supabase = supabaseAdmin;
-      
-      // Verificar se já existe um usuário com este email
-      const { data: existingUsers } = await supabase.auth.admin.listUsers();
+      // Validar dados
+      const validationError = validateMemberData(memberData);
+      if (validationError) {
+        throw new Error(validationError);
+      }
+
+      // Verificar se o usuário já existe
+      const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
       const userExists = existingUsers?.users.some(user => user.email === memberData.email);
       
       if (userExists) {
         throw new Error("Este email já está cadastrado");
       }
       
-      // Usar inviteUserByEmail com redirecionamento para página de criação de senha
-      const redirectUrl = `${origin}/set-password`;
+      // Normalizar role
+      const role = memberData.role === "admin" ? "admin" : "user";
       
-      // Validar e normalizar a role
-      let role = memberData.role || "";
-      if (role !== "user" && role !== "admin") {
-        role = "user"; // Valor padrão se não for uma role válida
-      }
-      
-      const { data, error } = await supabase.auth.admin.inviteUserByEmail(
+      // Criar convite
+      const { data, error } = await supabaseAdmin.auth.admin.inviteUserByEmail(
         memberData.email,
         {
-          redirectTo: redirectUrl,
+          redirectTo: `${origin}/set-password`,
           data: {
             display_name: memberData.name,
             role: role,
@@ -98,31 +88,12 @@ export const memberService = {
         }
       );
       
-      if (error) {
-        throw error;
-      }
-      
-      // Atualizar o email_verified conforme o status de confirmação do email
-      if (data?.user?.id) {
-        // Aguardar um curto período para garantir que o usuário foi criado
-        const { data: userData } = await supabase.auth.admin.getUserById(data.user.id);
-        if (userData?.user?.email_confirmed_at) {
-          await supabase.auth.admin.updateUserById(
-            data.user.id,
-            { 
-              user_metadata: { 
-                ...data.user.user_metadata,
-                email_verified: true 
-              } 
-            }
-          );
-        }
-      }
+      if (error) throw error;
       
       return data.user;
     } catch (error) {
-      console.error("Erro ao adicionar membro:", error);
-      throw error;
+      if (error instanceof Error) throw error;
+      throw new Error("Erro ao adicionar membro");
     }
   },
 
@@ -131,16 +102,14 @@ export const memberService = {
    */
   removeMember: async (id: string): Promise<void> => {
     try {
-      const supabase = supabaseAdmin;
+      if (!id) throw new Error("ID do usuário é obrigatório");
       
-      const { error } = await supabase.auth.admin.deleteUser(id);
+      const { error } = await supabaseAdmin.auth.admin.deleteUser(id);
       
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
     } catch (error) {
-      console.error("Erro ao remover membro:", error);
-      throw error;
+      if (error instanceof Error) throw error;
+      throw new Error("Erro ao remover membro");
     }
   },
 
@@ -149,47 +118,43 @@ export const memberService = {
    */
   editMember: async (id: string, userData: MemberUpdateData): Promise<boolean> => {
     try {
-      const supabase = supabaseAdmin;
+      if (!id) throw new Error("ID do usuário é obrigatório");
       
-      // Obter metadados existentes do usuário
-      const { data: existingUsers } = await supabase.auth.admin.listUsers();
-      const user = existingUsers?.users.find(user => user.id === id);
+      // Validar dados
+      const validationError = validateMemberUpdateData(userData);
+      if (validationError) {
+        throw new Error(validationError);
+      }
+
+      // Buscar usuário existente
+      const { data: existingUser } = await supabaseAdmin.auth.admin.getUserById(id);
       
-      if (!user) {
+      if (!existingUser?.user) {
         throw new Error("Usuário não encontrado");
       }
-      
-      // Preparar dados para atualização mantendo os metadados existentes
-      const userMetadata: Record<string, unknown> = { 
-        ...user.user_metadata,
-        display_name: userData.displayName 
+
+      // Preparar metadados atualizados
+      const userMetadata: Record<string, any> = { 
+        ...existingUser.user.user_metadata,
+        display_name: userData.displayName
       };
       
-      // Validar e normalizar a role
+      // Atualizar role se fornecida (apenas para mudanças de role por admin)
       if (userData.role) {
-        let role = userData.role || user.user_metadata?.role || "";
-        if (role !== "user" && role !== "admin") {
-          role = "user"; // Valor padrão se não for uma role válida
-        }
-        userMetadata.role = role;
+        userMetadata.role = userData.role === "admin" ? "admin" : "user";
       }
       
-      // Atualizar metadados do usuário
-      const { error } = await supabase.auth.admin.updateUserById(
-        id,
-        { 
-          user_metadata: userMetadata
-        }
-      );
+      // Atualizar usuário
+      const { error } = await supabaseAdmin.auth.admin.updateUserById(id, { 
+        user_metadata: userMetadata
+      });
       
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
       
       return true;
     } catch (error) {
-      console.error("Erro ao atualizar usuário:", error);
-      throw error;
+      if (error instanceof Error) throw error;
+      throw new Error("Erro ao atualizar usuário");
     }
   },
 
@@ -198,63 +163,38 @@ export const memberService = {
    */
   resendInviteOrResetPassword: async (email: string, origin: string): Promise<void> => {
     try {
-      const supabase = supabaseAdmin;
+      if (!email) throw new Error("Email é obrigatório");
       
-      // Verificar se o usuário já confirmou o email
-      const { data: existingUsers } = await supabase.auth.admin.listUsers();
-      const user = existingUsers?.users.find(user => user.email === email);
+      // Buscar usuário pelo email
+      const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
+      const user = existingUsers?.users.find(u => u.email === email);
       
       if (!user) {
         throw new Error("Usuário não encontrado");
       }
       
-      // Se o usuário já confirmou o email, enviar reset de senha
-      // Caso contrário, reenviar convite
       if (user.email_confirmed_at) {
-        // Enviar reset de senha
-        const redirectUrl = `${origin}/reset-password`;
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: redirectUrl
+        // Usuário confirmado - enviar reset de senha
+        const { error } = await supabaseAdmin.auth.admin.generateLink({
+          type: 'recovery',
+          email: email,
+          options: {
+            redirectTo: `${origin}/reset-password`
+          }
         });
         
-        if (error) {
-          throw error;
-        }
-        
-        // Atualizar o email_verified para true se confirmado
-        if (user.id) {
-          await supabase.auth.admin.updateUserById(
-            user.id,
-            { 
-              user_metadata: { 
-                ...user.user_metadata,
-                email_verified: true 
-              } 
-            }
-          );
-        }
+        if (error) throw error;
       } else {
-        // Reenviar convite
-        const redirectUrl = `${origin}/set-password`;
-        const { error } = await supabase.auth.admin.inviteUserByEmail(
-          email,
-          {
-            redirectTo: redirectUrl,
-            data: {
-              display_name: user.user_metadata?.display_name || "",
-              role: user.user_metadata?.role || "user",
-              email_verified: false
-            }
-          }
-        );
+        // Usuário pendente - reenviar convite
+        const { error } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
+          redirectTo: `${origin}/set-password`
+        });
         
-        if (error) {
-          throw error;
-        }
+        if (error) throw error;
       }
     } catch (error) {
-      console.error("Erro ao reenviar convite/reset de senha:", error);
-      throw error;
+      if (error instanceof Error) throw error;
+      throw new Error("Erro ao processar solicitação");
     }
   }
 }; 

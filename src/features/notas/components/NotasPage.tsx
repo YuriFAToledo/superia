@@ -37,32 +37,9 @@ export function NotasPage() {
     sorting
   } = useNotas();
   
-  // Estado local para o diálogo de correção
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedNota, setSelectedNota] = useState<NotaFiscal | null>(null);
-  const [correctionText, setCorrectionText] = useState("");
-  
-  // Função para abrir o diálogo de correção
-  const openCorrectDialog = (nota: NotaFiscal) => {
-    setSelectedNota(nota);
-    setCorrectionText("");
-    setIsDialogOpen(true);
-  };
-  
-  // Função para fechar o diálogo
-  const closeDialog = () => {
-    setIsDialogOpen(false);
-    setSelectedNota(null);
-  };
-  
-  // Função para submeter a correção
-  const submitCorrection = async () => {
-    if (!correctionText.trim() || !selectedNota) return;
-    
-    const success = await handleCorrectNota(selectedNota, correctionText);
-    if (success) {
-      closeDialog();
-    }
+  // Função para reprocessar a nota fiscal
+  const handleReprocessNota = (nota: NotaFiscal) => {
+    handleCorrectNota(nota, "Solicitação de reprocessamento");
   };
   
   return (
@@ -182,7 +159,7 @@ export function NotasPage() {
                 notas={notas || []}
                 loading={loading}
                 onAccessPDF={handleAccessPDF}
-                onCorrect={openCorrectDialog}
+                onCorrect={handleReprocessNota}
                 onSort={handleSort}
                 sorting={sorting}
               />
@@ -205,52 +182,6 @@ export function NotasPage() {
           </div>
         </div>
       </div>
-      
-      {/* Diálogo de correção */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Corrigir Nota Fiscal</DialogTitle>
-          </DialogHeader>
-          
-          {selectedNota && (
-            <div className="space-y-4">
-              <div className="space-y-1">
-                <div className="text-sm text-gray-600">Nota:</div>
-                <div className="font-medium">{selectedNota.numero_nf}</div>
-              </div>
-              
-              <div className="space-y-1">
-                <div className="text-sm text-gray-600">Fornecedor:</div>
-                <div className="font-medium">{selectedNota.cnpj_prestador}</div>
-              </div>
-              
-              <div className="space-y-1">
-                <Label htmlFor="correction">Motivo da correção:</Label>
-                <Textarea
-                  id="correction"
-                  placeholder="Descreva o motivo da correção..."
-                  value={correctionText}
-                  onChange={(e) => setCorrectionText(e.target.value)}
-                  className="min-h-[100px]"
-                />
-              </div>
-            </div>
-          )}
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={closeDialog}>
-              Cancelar
-            </Button>
-            <Button 
-              onClick={submitCorrection}
-              disabled={!correctionText.trim()}
-            >
-              Confirmar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 } 
