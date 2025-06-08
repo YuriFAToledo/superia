@@ -2,7 +2,7 @@ import { Button } from "@/shared/components/ui/button"
 import { Input } from "@/shared/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/components/ui/table"
 import * as Dialog from '@radix-ui/react-dialog'
-import { Edit, KeyRound, Plus, Trash2, X } from "lucide-react"
+import { Edit, KeyRound, Mail, Plus, Trash2, X } from "lucide-react"
 import { User } from "@supabase/supabase-js"
 import { useState, useCallback } from "react"
 import { MemberUpdateData } from "../types"
@@ -367,7 +367,11 @@ export function MembrosSection({
                                     className="text-blue-500 border-blue-200"
                                     disabled={resetLoading}
                                 >
-                                    <KeyRound size={16} className="mr-1" />
+                                    {editMember?.email_confirmed_at ? (
+                                        <KeyRound size={16} className="mr-1" />
+                                    ) : (
+                                        <Mail size={16} className="mr-1" />
+                                    )}
                                     {editMember?.email_confirmed_at ? "Redefinir senha" : "Reenviar convite"}
                                 </Button>
                                 <div className="flex gap-2">

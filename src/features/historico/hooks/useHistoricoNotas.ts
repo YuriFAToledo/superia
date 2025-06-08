@@ -47,7 +47,7 @@ export function useHistoricoNotas(initialParams: NotasParams = {}) {
             let url = API_URL;
             
             // Adicionar parâmetro de status
-            const status = params.status || 'aprovado';
+            const status = params.status || NotaStatusEnum.APROVADO;
             url = `${url}?status=${status}`;
             
             // Adicionar outros parâmetros se existirem

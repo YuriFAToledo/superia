@@ -19,6 +19,9 @@ export default function SetPassword() {
         handleSetPassword
     } = useSetPassword()
 
+    // Determina se os inputs devem ser desabilitados
+    const inputsDisabled = loading || Boolean(error)
+
     return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
             <div className="mb-8">
@@ -62,6 +65,8 @@ export default function SetPassword() {
                                     required
                                     placeholder="Digite sua nova senha"
                                     error={formErrors?.password}
+                                    disabled={inputsDisabled}
+                                    className={inputsDisabled ? 'opacity-50 cursor-not-allowed' : ''}
                                 />
                                 
                                 <FormInput
@@ -73,12 +78,14 @@ export default function SetPassword() {
                                     required
                                     placeholder="Confirme sua nova senha"
                                     error={formErrors?.confirmPassword}
+                                    disabled={inputsDisabled}
+                                    className={inputsDisabled ? 'opacity-50 cursor-not-allowed' : ''}
                                 />
                                 
                                 <Button 
                                     type="submit" 
                                     className="w-full bg-primary text-white"
-                                    disabled={loading || Object.keys(formErrors).length > 0}
+                                    disabled={loading || Boolean(error) || Object.keys(formErrors).length > 0}
                                 >
                                     {loading ? "Processando..." : "Definir senha"}
                                 </Button>

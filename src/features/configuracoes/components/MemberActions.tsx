@@ -1,5 +1,5 @@
 import { Button } from "@/shared/components/ui/button";
-import { Edit, KeyRound, Trash2 } from "lucide-react";
+import { Edit, KeyRound, Mail, Trash2 } from "lucide-react";
 import { User } from "@supabase/supabase-js";
 import {
   Tooltip,
@@ -65,7 +65,11 @@ export function MemberActions({
               disabled={loading || !member.email}
               title={member.email_confirmed_at ? "Redefinir senha" : "Reenviar convite"}
             >
-              <KeyRound size={16} className="text-blue-500" />
+              {member.email_confirmed_at ? (
+                <KeyRound size={16} className="text-blue-500" />
+              ) : (
+                <Mail size={16} className="text-blue-500" />
+              )}
             </Button>
           </TooltipTrigger>
           <TooltipContent>

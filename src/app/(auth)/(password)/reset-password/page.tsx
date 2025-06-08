@@ -1,5 +1,3 @@
-'use client'
-
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/shared/components/ui/card'
 import Image from 'next/image'
@@ -18,6 +16,9 @@ export default function ResetPassword() {
         success,
         handleResetPassword
     } = usePasswordReset()
+
+    // Determina se os inputs devem ser desabilitados
+    const inputsDisabled = loading || Boolean(error)
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
@@ -62,6 +63,8 @@ export default function ResetPassword() {
                                     required
                                     placeholder="Digite sua nova senha"
                                     error={formErrors?.password}
+                                    disabled={inputsDisabled}
+                                    className={inputsDisabled ? 'opacity-50 cursor-not-allowed' : ''}
                                 />
                                 
                                 <FormInput
@@ -73,12 +76,14 @@ export default function ResetPassword() {
                                     required
                                     placeholder="Confirme sua nova senha"
                                     error={formErrors?.confirmPassword}
+                                    disabled={inputsDisabled}
+                                    className={inputsDisabled ? 'opacity-50 cursor-not-allowed' : ''}
                                 />
                                 
                                 <Button 
                                     type="submit" 
                                     className="w-full bg-primary text-white"
-                                    disabled={loading || Object.keys(formErrors).length > 0}
+                                    disabled={loading || Boolean(error) || Object.keys(formErrors).length > 0}
                                 >
                                     {loading ? "Processando..." : "Redefinir senha"}
                                 </Button>

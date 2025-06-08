@@ -54,11 +54,6 @@ export function useConfiguracoes() {
     try {
       setLoadingMembers(true);
       
-      // Delay artificial para melhorar UX (apenas em desenvolvimento)
-      if (process.env.NODE_ENV !== 'test') {
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
-      
       const { users, totalPages: calculatedTotalPages } = await memberService.getMembers(page, itemsPerPage);
       
       // Ajustar página atual se necessário
