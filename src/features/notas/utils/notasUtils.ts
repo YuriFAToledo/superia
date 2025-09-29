@@ -12,8 +12,8 @@ export const getStatusParam = (filter: string | null): NotaStatusEnum | undefine
 /**
  * Função helper para verificar se os dados de notas são válidos
  */
-export const isValidNotasData = (data: any[]): boolean => {
-  return data.length > 0 && !(data.length === 1 && Object.keys(data[0]).length === 0);
+export const isValidNotasData = (data: unknown[]): boolean => {
+  return Array.isArray(data) && data.length > 0 && !(data.length === 1 && typeof data[0] === 'object' && data[0] !== null && Object.keys(data[0] as object).length === 0);
 };
 
 /**
@@ -29,15 +29,15 @@ export const formatCurrency = (value: number): string => {
 /**
  * Função para verificar se uma nota fiscal é válida
  */
-export const isValidNota = (nota: any): boolean => {
-  return Boolean(nota?.id);
+export const isValidNota = (nota: unknown): boolean => {
+  return Boolean((nota as { id?: unknown })?.id);
 };
 
 /**
  * Função para verificar se os dados estão vazios
  */
-export const isEmptyData = (notas: any[]): boolean => {
-  return !notas || notas.length === 0 || (notas.length === 1 && Object.keys(notas[0]).length === 0);
+export const isEmptyData = (notas: unknown[]): boolean => {
+  return !Array.isArray(notas) || notas.length === 0 || (notas.length === 1 && typeof notas[0] === 'object' && notas[0] !== null && Object.keys(notas[0] as object).length === 0);
 };
 
 /**

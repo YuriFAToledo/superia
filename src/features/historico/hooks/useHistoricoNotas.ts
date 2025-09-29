@@ -43,10 +43,10 @@ export function useHistoricoNotas(initialParams: NotasParams = {}) {
     const { getAuthToken } = useAuth();
 
     // Função para validar dados das notas (mesma do useNotasFiscais)
-    const isValidNotasData = (data: any[]): data is NotaFiscal[] => {
+    const isValidNotasData = (data: unknown[]): data is NotaFiscal[] => {
         return Array.isArray(data) && data.length > 0 && 
-               typeof data[0] === 'object' && 
-               Object.keys(data[0]).length > 0;
+               typeof data[0] === 'object' && data[0] !== null &&
+               Object.keys(data[0] as object).length > 0;
     };
 
     // *** CORRIGIDO: Função para buscar notas da API (SEM paginação via API) ***
@@ -200,7 +200,7 @@ export function useHistoricoNotas(initialParams: NotasParams = {}) {
                 clearTimeout(debounceTimeoutRef.current);
             }
         };
-    }, []);
+    }, [filterNotas, initialParams.limit]);
 
     // *** CORRIGIDO: handleSearch igual ao useNotasFiscais ***
     const handleSearch = useCallback((term: string) => {

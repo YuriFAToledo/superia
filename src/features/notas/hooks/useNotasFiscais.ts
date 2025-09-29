@@ -64,7 +64,7 @@ export function useNotasFiscais(initialParams: NotasParams = {}) {
             });
             
             return data;
-        } catch (error) {
+        } catch {
             return { pendentes: 0, emProcessamento: 0 };
         }
     }, [getAuthToken]);
@@ -171,7 +171,7 @@ export function useNotasFiscais(initialParams: NotasParams = {}) {
             }
             
             await fetchCounters();
-        } catch (err) {
+        } catch {
             setError('Erro ao buscar notas fiscais');
             allNotasRef.current = [];
             setNotas([]);
@@ -307,8 +307,6 @@ export function useNotasFiscais(initialParams: NotasParams = {}) {
     // Função para acessar o PDF de uma nota
     const handleAccessPDF = useCallback(async (nota: NotaFiscal) => {
         try {
-            const token = getAuthToken();
-            
                 const response = await axios.get(`https://kydyuvbqlltkoozocmim.supabase.co/storage/v1/object/public/nf/files/${nota.qive_id}.pdf`, {
                     responseType: 'blob',
                     headers: {
@@ -325,10 +323,10 @@ export function useNotasFiscais(initialParams: NotasParams = {}) {
                 document.body.appendChild(link);
                 link.click();
                 link.remove();
-        } catch (error) {
+        } catch {
             toast.error('Erro ao baixar o PDF da nota fiscal');
         }
-    }, [getAuthToken]);
+    }, []);
     
     // Função para reprocessar uma nota
     const handleCorrectNota = useCallback(async (nota: NotaFiscal, motivo: string) => {
@@ -354,7 +352,7 @@ export function useNotasFiscais(initialParams: NotasParams = {}) {
             });
             
             return true;
-        } catch (error) {
+        } catch {
             toast.error(`Erro ao reprocessar a nota fiscal ${nota.numero_nf}.`);
             return false;
         }

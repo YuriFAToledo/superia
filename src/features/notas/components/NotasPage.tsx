@@ -6,9 +6,7 @@ import { Input } from "@/shared/components/ui/input"
 import { useState } from "react"
 import { ChevronDown, FileClock, Search, TextSearch } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/shared/components/ui/dialog"
-import { Label } from "@/shared/components/ui/label"
-import { Textarea } from "@/shared/components/ui/textarea"
+ 
 import { Pagination } from "@/shared/components/common/pagination"
 import { NotaFiscal } from '../types'
 import { useNotas } from "../hooks/useNotas"

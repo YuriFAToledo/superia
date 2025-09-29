@@ -42,7 +42,7 @@ export function useConfiguracoes() {
         setCurrentUser(user);
         setEmail(user.email || "");
       }
-    } catch (error) {
+    } catch {
       // Erro silencioso - não precisa notificar o usuário
     }
   }, []);

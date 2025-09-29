@@ -1,5 +1,4 @@
 import { User } from "@supabase/supabase-js";
-import { getUserStatus, getStatusConfig } from "../utils/memberUtils";
 
 interface MemberStatusBadgeProps {
   member: User;

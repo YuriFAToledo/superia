@@ -25,7 +25,8 @@ export default function Configuracoes() {
         handleAddMember,
         handleRemoveMember,
         handleEditMember,
-        handleResendInviteOrResetPassword
+        handleResendInviteOrResetPassword,
+        resetForm
     } = useConfiguracoes()
 
     return (
@@ -55,6 +56,7 @@ export default function Configuracoes() {
                     handleRemoveMember={handleRemoveMember}
                     handleEditMember={handleEditMember}
                     handleResendInviteOrResetPassword={handleResendInviteOrResetPassword}
+                    resetForm={resetForm}
                 />
                 
                 <UserProfileCard 
