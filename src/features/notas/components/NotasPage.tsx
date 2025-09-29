@@ -36,6 +36,30 @@ export function NotasPage() {
     handleCorrectNota,
     sorting
   } = useNotas();
+
+  const [sortField, setSortField] = useState("mais_recente");
+
+  const handleSortChange = (value: string) => {
+    setSortField(value);
+    
+    // Mapeamento dos valores do select para os campos reais da interface NotaFiscal
+    const fieldMapping: Record<string, keyof NotaFiscal> = {
+      "data_da_nota": "data_emissao",
+      "fornecedor": "cnpj_prestador",
+      "numero_de_nota": "numero_nf",
+      "valor": "valor_total",
+      "status": "status",
+      "mais_recente": "created_at"
+    };
+    
+    const mappedField = fieldMapping[value];
+    
+    if (mappedField) {
+      handleSort(mappedField);
+    } else {
+      console.error("❌ Campo não encontrado no mapeamento para:", value);
+    }
+  };
   
   // Função para reprocessar a nota fiscal
   const handleReprocessNota = (nota: NotaFiscal) => {
@@ -120,7 +144,11 @@ export function NotasPage() {
 
             <div className="flex items-center gap-5 rounded-lg">
               <span className="text-[#B7B7B7] text-sm font-medium">Ordenar por:</span>
-              <Select defaultValue="mais_recente">
+              <Select 
+                value={sortField} 
+                onValueChange={handleSortChange}
+                disabled={loading}
+              >
                 <SelectTrigger
                   className="w-[180px] h-9 rounded-2xl bg-white flex items-center justify-between px-3 data-[placeholder]:text-[#B7B7B7] text-[#B7B7B7]"
                 >
@@ -132,19 +160,19 @@ export function NotasPage() {
                   className="w-[180px] bg-white rounded-lg shadow-lg border"
                 >
                   {[
-                    "Data da nota",
-                    "Fornecedor",
-                    "Número de nota",
-                    "Valor",
-                    "Status",
-                    "Mais recente"
+                    { label: "Data da nota", value: "data_da_nota" },
+                    { label: "Fornecedor", value: "fornecedor" },
+                    { label: "Numero de nota", value: "numero_de_nota" },
+                    { label: "Valor", value: "valor" },
+                    { label: "Status", value: "status" },
+                    { label: "Mais recente", value: "mais_recente" }
                   ].map((field) => (
                     <SelectItem
-                      key={field}
-                      value={field.toLowerCase().replace(/\s+/g, "_")}
+                      key={field.value}
+                      value={field.value}
                       className="text-[#B7B7B7] text-sm px-3 py-2 hover:bg-primary data-[highlighted]:text-secondary data-[state=checked]:text-secondary data-[state=checked]:font-semibold data-[state=checked]:bg-muted"
                     >
-                      {field}
+                      {field.label}
                     </SelectItem>
                   ))}
                 </SelectContent>

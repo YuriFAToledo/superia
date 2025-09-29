@@ -40,9 +40,11 @@ export function useNotasFiscais(initialParams: NotasParams = {}) {
     
     // Referência para o token de cancelamento da última requisição
     const cancelTokenRef = useRef<CancelTokenSource | null>(null);
+
+    const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     
-    // Obter o token de autenticação
-    const { getAuthToken } = useAuth();
+    // Obter o token de autenticação e estado de carregamento do auth
+    const { getAuthToken, loading: authLoading } = useAuth();
 
     // Função para buscar contadores do dashboard
     const fetchCounters = useCallback(async () => {
@@ -57,8 +59,8 @@ export function useNotasFiscais(initialParams: NotasParams = {}) {
             const data = response.data;
             
             setCounters({
-                pendentes: data.pendentes || 0,
-                emProcessamento: data.emProcessamento || 0
+                pendentes: data.resumo_status.pendente || 0,
+                emProcessamento: data.resumo_status.em_processamento || 0
             });
             
             return data;
@@ -93,12 +95,12 @@ export function useNotasFiscais(initialParams: NotasParams = {}) {
                 url = `${url}?status=${statusValue}`;
             }
             
-            if (params.fornecedor) {
-                url = `${url}${url.includes('?') ? '&' : '?'}fornecedor="${params.fornecedor}"`;
+            if (params.fornecedor && params.fornecedor.trim() !== '') {
+                url = `${url}${url.includes('?') ? '&' : '?'}cnpj_prestador=${encodeURIComponent(params.fornecedor.trim())}`;
             }
             
             if (params.sort) {
-                url = `${url}${url.includes('?') ? '&' : '?'}sort=${params.sort}&order=${params.order || 'asc'}`;
+                url = `${url}${url.includes('?') ? '&' : '?'}sort=${params.sort}&order=${params.order || 'desc'}`;
             }
             
             // Delay para debounce
@@ -178,19 +180,23 @@ export function useNotasFiscais(initialParams: NotasParams = {}) {
         }
     }, [fetchNotasFromAPI, fetchCounters, paginateData]);
 
-    // Efeito para carregar as notas iniciais
+    // Efeito para carregar as notas iniciais: aguarda o carregamento do auth
     useEffect(() => {
+        // Não tentar buscar até que o auth tenha sido inicializado
+        if (authLoading) return;
+
         filterNotas({
             status: initialParams.status,
             limit: initialParams.limit || 7
         });
-        
+
         return () => {
             if (cancelTokenRef.current) {
                 cancelTokenRef.current.cancel('Componente desmontado');
             }
         };
-    }, []);
+    // Reexecutar quando o auth terminar de carregar ou quando os parâmetros iniciais mudarem
+    }, [authLoading, initialParams.status, initialParams.limit, filterNotas]);
     
     // Função para lidar com a mudança de filtro
     const handleFilterChange = useCallback((filter: string | null) => {
@@ -207,15 +213,36 @@ export function useNotasFiscais(initialParams: NotasParams = {}) {
     // Função para lidar com a busca
     const handleSearch = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const term = e.target.value;
-        setSearchTerm(term);
         
-        filterNotas({
+        // Atualizar o estado imediatamente
+        setSearchTerm(term);
+
+        // Limpar timeout anterior
+        if (debounceTimeoutRef.current) {
+            clearTimeout(debounceTimeoutRef.current);
+        }
+
+        // CORREÇÃO: Se o campo estiver vazio, executar imediatamente
+        if (term.trim() === '') {
+            filterNotas({
             status: getStatusParam(activeFilter),
             page: 1,
-            fornecedor: term || undefined,
+            fornecedor: undefined, // Importante: undefined para não enviar o parâmetro
             limit: initialParams.limit || 7
-        });
-    }, [filterNotas, activeFilter, initialParams.limit]);
+            });
+            return;
+        }
+
+        // Para termos não vazios, aplicar debounce
+        debounceTimeoutRef.current = setTimeout(() => {
+            filterNotas({
+            status: getStatusParam(activeFilter),
+            page: 1,
+            fornecedor: term,
+            limit: initialParams.limit || 7
+            });
+        }, 300); // Reduzi para 300ms para melhor responsividade
+        }, [filterNotas, activeFilter, initialParams.limit]);
     
     // Função para lidar com mudança de página
     const handlePageChange = useCallback((newPage: number) => {
@@ -226,21 +253,45 @@ export function useNotasFiscais(initialParams: NotasParams = {}) {
     
     // Função para ordenar resultados
     const handleSort = useCallback((field: keyof NotaFiscal) => {
+        
         const direction = 
             sortConfig.field === field && sortConfig.direction === 'asc' ? 'desc' : 'asc';
         
         setSortConfig({ field, direction });
         
-        // Ordenar os dados localmente
+        // OPÇÃO 1: Tentar ordenação via API primeiro (se houver dados para buscar novamente)
+        if (activeFilter !== null || searchTerm) {
+            filterNotas({
+                status: getStatusParam(activeFilter),
+                sort: field as string,
+                order: direction,
+                page: 1,
+                fornecedor: searchTerm || undefined,
+                limit: initialParams.limit || 7
+            });
+            return;
+        }
+        
+        // OPÇÃO 2: Ordenação local (mais rápida para dados já carregados)
         const sortedData = [...allNotasRef.current].sort((a, b) => {
-            if (!a[field] || !b[field]) return 0;
+            let aValue = a[field];
+            let bValue = b[field];
             
-            if (a[field] < b[field]) {
-                return direction === 'asc' ? -1 : 1;
+            // Tratar valores nulos/undefined
+            if (!aValue && !bValue) return 0;
+            if (!aValue) return 1;
+            if (!bValue) return -1;
+            
+            // Tratar datas como strings ISO
+            if (field === 'data_emissao' || field === 'created_at' || field === 'updated_at') {
+                aValue = new Date(aValue as string).getTime();
+                bValue = new Date(bValue as string).getTime();
             }
-            if (a[field] > b[field]) {
-                return direction === 'asc' ? 1 : -1;
-            }
+            
+            const sortDirection = direction === 'desc' ? -1 : 1;
+            
+            if (aValue < bValue) return -1 * sortDirection;
+            if (aValue > bValue) return 1 * sortDirection;
             return 0;
         });
         
@@ -251,19 +302,20 @@ export function useNotasFiscais(initialParams: NotasParams = {}) {
         const paginatedData = paginateData(sortedData, 1);
         setNotas(paginatedData);
         setPage(1);
-    }, [sortConfig, paginateData]);
+    }, [sortConfig, activeFilter, searchTerm, filterNotas, initialParams.limit, paginateData]);
     
     // Função para acessar o PDF de uma nota
     const handleAccessPDF = useCallback(async (nota: NotaFiscal) => {
         try {
             const token = getAuthToken();
             
-                const response = await axios.get(`${API_URL}/pdf/${nota.id}`, {
+                const response = await axios.get(`https://kydyuvbqlltkoozocmim.supabase.co/storage/v1/object/public/nf/files/${nota.qive_id}.pdf`, {
                     responseType: 'blob',
                     headers: {
-                        'Authorization': token ? `Bearer ${token}` : '',
+                        "Content-Type": "application/pdf"
                     }
                 });
+
                 
                 // Criar URL para download
                 const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -287,9 +339,10 @@ export function useNotasFiscais(initialParams: NotasParams = {}) {
                 'Content-Type': 'application/json'
             };
             
-            await axios.post(`${API_URL}/corrigir/${nota.id}`, 
+            await axios.patch(`${API_URL}/${nota.numero_nf}/retry`, 
                 { motivo },
                 { headers }
+                //:numero_nf/retry
             );
             
             toast.success(`Nota fiscal ${nota.numero_nf} enviada para reprocessamento.`);

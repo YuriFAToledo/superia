@@ -8,7 +8,7 @@ import { HistoricoTable } from "@/features/historico/components/HistoricoTable"
 import { useHistoricoNotas } from "@/features/historico/hooks/useHistoricoNotas"
 import { Pagination } from "@/shared/components/common/pagination"
 import { NotaFiscal, NotaStatusEnum } from "../types"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 
 /**
  * Componente principal da página de notas fiscais
@@ -22,7 +22,7 @@ export function HistoricoPage() {
     searchTerm,
     page,
     totalPages,
-    handleSearch: hookHandleSearch,
+    handleSearch,
     handlePageChange,
     handleSort,
     getNotaPDF,
@@ -30,9 +30,13 @@ export function HistoricoPage() {
     fetchNotas
   } = useHistoricoNotas({ limit: 9 });
 
-  // Adaptador para o evento de input
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    hookHandleSearch(e.target.value);
+  const [sortField, setSortField] = useState("mais_recente");
+
+  // *** CORREÇÃO PRINCIPAL: Handler correto para o input ***
+  const handleSearchInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    console.log('Input value:', value); // Debug log
+    handleSearch(value); // Passa apenas o valor, não o evento
   };
 
   // Adaptador para acessar PDF
@@ -42,17 +46,33 @@ export function HistoricoPage() {
     }
   };
 
+  // Função para lidar com mudança de ordenação
+  const handleSortChange = (value: string) => {
+    setSortField(value);
+    
+    // Mapeamento dos valores do select para os campos reais da interface NotaFiscal
+    const fieldMapping: Record<string, keyof NotaFiscal> = {
+      "data_da_nota": "data_emissao",
+      "fornecedor": "cnpj_prestador",
+      "numero_de_nota": "numero_nf", 
+      "valor": "valor_total",
+      "status": "status",
+      "mais_recente": "created_at"
+    };
+    
+    const mappedField = fieldMapping[value];
+    
+    if (mappedField) {
+      handleSort(mappedField);
+    }
+  };
+
   // Efeito para monitorar erros e recarregar se necessário
   useEffect(() => {
     if (error) {
       console.error("Erro ao carregar notas:", error);
-      // Se quiser implementar um retry automático:
-      // const timer = setTimeout(() => {
-      //   fetchNotas({ limit: 9, status: 'pendente' });
-      // }, 3000);
-      // return () => clearTimeout(timer);
     }
-  }, [error, fetchNotas]);
+  }, [error]);
 
   return (
     <div className="w-full flex flex-col h-screen pt-12 pl-6 pr-16 pb-10 gap-6 overflow-hidden">
@@ -72,14 +92,17 @@ export function HistoricoPage() {
                 placeholder="Pesquisar por fornecedor"
                 className="pl-12 min-w-[275px] h-9 py-5 bg-white rounded-[17px] border border-gray-200 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 value={searchTerm}
-                onChange={handleSearch}
-                disabled={loading}
+                onChange={handleSearchInput} // *** CORREÇÃO: Usar o handler correto ***
               />
             </div>
 
             <div className="flex items-center gap-5 rounded-lg">
               <span className="text-[#B7B7B7] text-sm font-medium">Ordenar por:</span>
-              <Select defaultValue="mais_recente" disabled={loading}>
+              <Select 
+                value={sortField} 
+                onValueChange={handleSortChange}
+                disabled={loading}
+              >
                 <SelectTrigger
                   className="w-[180px] h-9 rounded-2xl bg-white flex items-center justify-between px-3 data-[placeholder]:text-[#B7B7B7] text-[#B7B7B7]"
                 >
@@ -91,19 +114,19 @@ export function HistoricoPage() {
                   className="w-[180px] bg-white rounded-lg shadow-lg border"
                 >
                   {[
-                    "Data da nota",
-                    "Fornecedor",
-                    "Número de nota",
-                    "Valor",
-                    "Status",
-                    "Mais recente"
+                    { label: "Data da nota", value: "data_da_nota" },
+                    { label: "Fornecedor", value: "fornecedor" },
+                    { label: "Numero de nota", value: "numero_de_nota" },
+                    { label: "Valor", value: "valor" },
+                    { label: "Status", value: "status" },
+                    { label: "Mais recente", value: "mais_recente" }
                   ].map((field) => (
                     <SelectItem
-                      key={field}
-                      value={field.toLowerCase().replace(/\s+/g, "_")}
+                      key={field.value}
+                      value={field.value}
                       className="text-[#B7B7B7] text-sm px-3 py-2 hover:bg-primary data-[highlighted]:text-secondary data-[state=checked]:text-secondary data-[state=checked]:font-semibold data-[state=checked]:bg-muted"
                     >
-                      {field}
+                      {field.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -133,13 +156,22 @@ export function HistoricoPage() {
               </div>
             )}
 
+            {!loading && notas && notas.length === 0 && !error && (
+              <div className="text-center py-8 text-gray-500">
+                {searchTerm ? 
+                  `Nenhuma nota fiscal encontrada para "${searchTerm}".` : 
+                  "Nenhuma nota fiscal encontrada."
+                }
+              </div>
+            )}
+
             {error && !loading && (
               <div className="text-center py-4 text-red-500">
                 Ocorreu um erro ao carregar as notas fiscais. 
                 <Button 
                   variant="link" 
                   className="text-primary ml-2"
-                  onClick={() => fetchNotas({ limit: 9, status: NotaStatusEnum.PENDENTE })}
+                  onClick={() => fetchNotas({ limit: 9, status: NotaStatusEnum.APROVADO })}
                 >
                   Tentar novamente
                 </Button>
@@ -150,4 +182,4 @@ export function HistoricoPage() {
       </div>
     </div>
   );
-} 
+}

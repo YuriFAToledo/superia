@@ -24,6 +24,7 @@ export interface NotaFiscal {
     pdf_hash?: string;
     created_at?: string;
     updated_at?: string;
+    qive_id?: string;
 }
 
 /**
