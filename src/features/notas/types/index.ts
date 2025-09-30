@@ -12,9 +12,8 @@ export interface NotaFiscal {
     discriminacao?: string;
     pricod?: string;
     status: NotaStatusEnum;
-    motivos_pendencia?: {
-        motivo: string;
-    };
+    /** Compatibilidade: algumas respostas trazem um único campo de motivo */
+    motivos_pendencia?: string;
     attempt_count?: number;
     next_retry?: string | null;
     is_reprocessing?: boolean;

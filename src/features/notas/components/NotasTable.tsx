@@ -205,8 +205,8 @@ export const NotasTable = forwardRef<NotasTableRef, NotasTableProps>(
                   {nota.status ? <StatusBadge status={nota.status} /> : '-'}
                 </TableCell>
                 <TableCell className="py-4 px-6 text-sm text-gray-900 h-[52px]">
-                  {nota.motivos_pendencia?.motivo !== "-" ? 
-                    nota.motivos_pendencia?.motivo : 
+                  {nota.motivos_pendencia !== "-" ? 
+                    nota.motivos_pendencia : 
                     <span className="text-gray-400">-</span>
                   }
                 </TableCell>
