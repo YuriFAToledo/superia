@@ -331,7 +331,7 @@ export function useNotasFiscais(initialParams: NotasParams = {}) {
     // Função para reprocessar uma nota
     const handleCorrectNota = useCallback(async (nota: NotaFiscal, motivo: string) => {
         try {
-            const token = getAuthToken();
+            // const token = getAuthToken();
             const headers = {
                 // 'Authorization': token ? `Bearer ${token}` : '',
                 'Content-Type': 'application/json'
