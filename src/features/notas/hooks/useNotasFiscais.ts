@@ -333,11 +333,11 @@ export function useNotasFiscais(initialParams: NotasParams = {}) {
         try {
             const token = getAuthToken();
             const headers = {
-                'Authorization': token ? `Bearer ${token}` : '',
+                // 'Authorization': token ? `Bearer ${token}` : '',
                 'Content-Type': 'application/json'
             };
             
-            await axios.patch(`https://superia-trading.app.n8n.cloud/webhook/2549b8a5-a9e0-4855-a8c1-cbe6b9a2db4e/nfs-pendentes/${nota.numero_nf}/retry`, 
+            await axios.post(`https://superia-trading.app.n8n.cloud/webhook/2549b8a5-a9e0-4855-a8c1-cbe6b9a2db4e/nfs-pendentes/${nota.numero_nf}/retry`, 
                 { motivo },
                 { headers }
                 //:numero_nf/retry
