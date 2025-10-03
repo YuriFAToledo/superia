@@ -41,8 +41,8 @@ export function HistoricoPage() {
 
   // Adaptador para acessar PDF
   const handleAccessPDF = (nota: NotaFiscal) => {
-    if (nota.id) {
-      getNotaPDF(nota.id);
+    if (nota.qive_id) {
+      getNotaPDF(nota);
     }
   };
 

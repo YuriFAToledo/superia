@@ -2,6 +2,7 @@ import { useCallback, useState, useEffect, useRef } from 'react'
 import { NotaFiscal, NotasParams, NotaStatusEnum } from '../types'
 import axios, { CancelTokenSource } from 'axios'
 import { useAuth } from '@/features/auth/hooks/useAuth'
+import { toast } from 'sonner'
 
 // Interface SortConfig interna
 interface SortConfig {
@@ -298,29 +299,28 @@ export function useHistoricoNotas(initialParams: NotasParams = {}) {
     }, [sortConfig, searchTerm, filterNotas, initialParams.limit, paginateData]);
     
     // Função para obter o PDF de uma nota
-    const getNotaPDF = useCallback(async (id: string) => {
+    const getNotaPDF = useCallback(async (nota: NotaFiscal) => {
         try {
             const token = getAuthToken();
-            
-            const response = await axios.get(`${API_URL}/pdf/${id}`, {
+
+            const response = await axios.get(`https://kydyuvbqlltkoozocmim.supabase.co/storage/v1/object/public/nf/files/${nota.qive_id}.pdf`, {
                 responseType: 'blob',
                 headers: {
+                    "Content-Type": "application/pdf",
                     'Authorization': token ? `Bearer ${token}` : '',
                 }
             });
-            
+
             // Criar URL para download
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', `nota-fiscal-${id}.pdf`);
+            link.setAttribute('download', `nota-fiscal-${nota.id}.pdf`);
             document.body.appendChild(link);
             link.click();
             link.remove();
-            window.URL.revokeObjectURL(url);
-        } catch (error) {
-            console.error('Erro ao baixar PDF:', error);
-            alert('Erro ao baixar o PDF da nota fiscal');
+        } catch {
+            toast.error('Erro ao baixar o PDF da nota fiscal');
         }
     }, [getAuthToken]);
     
