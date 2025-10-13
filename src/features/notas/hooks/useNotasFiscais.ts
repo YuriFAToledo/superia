@@ -356,7 +356,7 @@ export function useNotasFiscais(initialParams: NotasParams = {}) {
             toast.error(`Erro ao reprocessar a nota fiscal ${nota.numero_nf}.`);
             return false;
         }
-    }, [getAuthToken, filterNotas, activeFilter, searchTerm]);
+    }, [filterNotas, activeFilter, searchTerm]);
     
     return {
         notas,

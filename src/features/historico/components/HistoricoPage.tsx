@@ -39,13 +39,9 @@ export function HistoricoPage() {
     handleSearch(value);
   };
 
-  /**
-   * Handler para mudança de ordenação no select
-   */
   const handleSortChange = (value: string) => {
     setSortField(value);
     
-    // Mapeamento dos valores do select para os campos da interface
     const fieldMapping: Record<string, keyof HistoricoNota> = {
       "numero": "numero",
       "status": "status",
