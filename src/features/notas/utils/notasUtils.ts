@@ -1,3 +1,5 @@
+
+
 import { NotaStatusEnum } from '../types';
 
 /**
@@ -30,7 +32,7 @@ export const formatCurrency = (value: number): string => {
  * Função para verificar se uma nota fiscal é válida
  */
 export const isValidNota = (nota: any): boolean => {
-  return Boolean(nota?.id);
+  return Boolean(nota?.qive_id);
 };
 
 /**
@@ -45,12 +47,12 @@ export const isEmptyData = (notas: any[]): boolean => {
  */
 export const getStatusConfig = (status: string) => {
   switch(status) {
-    case "pendente":
+    case "PENDING":
       return { bg: "bg-yellow-100", text: "text-yellow-800", label: "Pendente" };
     case "em_processamento":
       return { bg: "bg-blue-100", text: "text-blue-800", label: "Em processamento" };
-    case "aprovado":
-      return { bg: "bg-green-100", text: "text-green-800", label: "Aprovado" };
+    case "ESCRITURADA":
+      return { bg: "bg-green-100", text: "text-green-800", label: "Escriturada" };
     case "recusado":
     case "reprovado":
     case "rejeitado":

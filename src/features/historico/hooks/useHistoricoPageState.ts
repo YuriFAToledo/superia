@@ -1,3 +1,5 @@
+'use client'
+
 import { useState, useCallback } from "react";
 import { useHistoricoNotas } from "./useHistoricoNotas";
 import { NotaStatusEnum } from "../types";
@@ -43,7 +45,7 @@ export function useHistoricoPageState() {
     const refreshData = useCallback(() => {
         fetchNotas({
             limit: 8,
-            status: NotaStatusEnum.PENDENTE,
+            status: NotaStatusEnum.COMPLETA,
             fornecedor: inputSearchTerm.trim() ? inputSearchTerm : undefined
         });
     }, [fetchNotas, inputSearchTerm]);

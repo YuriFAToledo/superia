@@ -1,3 +1,5 @@
+'use client'
+
 import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/shared/components/ui/card'
 import Image from 'next/image'
@@ -25,7 +27,7 @@ export default function ResetPassword() {
             <div className="mb-8">
                 <Image
                     src="/logo.svg"
-                    alt="Logo Superia"
+                    alt="Logo superia"
                     width={160}
                     height={40}
                     priority

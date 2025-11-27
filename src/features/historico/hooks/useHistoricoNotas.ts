@@ -1,9 +1,11 @@
-import { useCallback, useState, useEffect } from 'react'
+'use client'
+
+import { useCallback, useState, useEffect, useRef } from 'react'
 import { NotaFiscal, NotasParams, NotaStatusEnum } from '../types'
-import axios from 'axios'
+import axios, { CancelTokenSource } from 'axios'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 
-// Interface SortConfig interna para evitar conflitos de tipo
+// Interface SortConfig interna
 interface SortConfig {
     field: keyof NotaFiscal | null;
     direction: 'asc' | 'desc';
@@ -11,9 +13,14 @@ interface SortConfig {
 
 // URL base da API
 const API_URL = 'https://superia-trading.app.n8n.cloud/webhook/nfs-pendentes';
+const API_URL_HISTORICO = "https://superia-trading.app.n8n.cloud/webhook/nfs-pendentes/historico"
+
+// Número fixo de itens por página
+const ITEMS_PER_PAGE = 9;
 
 /**
  * Hook especializado para gerenciar o histórico de notas fiscais
+ * USANDO A MESMA ESTRATÉGIA DO useNotasFiscais (paginação local)
  */
 export function useHistoricoNotas(initialParams: NotasParams = {}) {
     // Estados básicos
@@ -28,236 +35,348 @@ export function useHistoricoNotas(initialParams: NotasParams = {}) {
         direction: 'desc'
     });
     
-    // Obter o token de autenticação
-    const { getAuthToken } = useAuth();
+    // *** IGUAL AO useNotasFiscais: Dados completos para paginação local ***
+    const allNotasRef = useRef<NotaFiscal[]>([]);
+    
+    // Referência para o token de cancelamento da última requisição
+    const cancelTokenRef = useRef<CancelTokenSource | null>(null);
+    const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    
+    // Ref para controlar se a busca inicial já foi executada
+    // Evita refresh desnecessário quando componente remonta
+    const hasInitializedRef = useRef(false);
+    
+    // Obter o token de autenticação e estado de carregamento da sessão
+    const { getAuthToken, loading: authLoading } = useAuth();
 
-    // Função para buscar notas da API
+    // Função para validar dados das notas (mesma do useNotasFiscais)
+    const isValidNotasData = (data: any[]): data is NotaFiscal[] => {
+        return Array.isArray(data) && data.length > 0 && 
+               typeof data[0] === 'object' && 
+               Object.keys(data[0]).length > 0;
+    };
+
+    // *** CORRIGIDO: Função para buscar notas da API (SEM paginação via API) ***
     const fetchNotasFromAPI = useCallback(async (params: NotasParams) => {
         try {
-            // Obter o token de autenticação
-            const token = getAuthToken();
+            // Cancelar requisição anterior se existir
+            if (cancelTokenRef.current) {
+                cancelTokenRef.current.cancel('Operação cancelada devido a nova requisição');
+            }
             
-            // Configurar headers com o token
+            cancelTokenRef.current = axios.CancelToken.source();
+            
+            const token = getAuthToken();
             const headers = {
                 'Authorization': token ? `Bearer ${token}` : '',
                 'Content-Type': 'application/json'
             };
             
-            // Construir a URL com os parâmetros
-            let url = API_URL;
+            // *** CORREÇÃO: Buscar TODOS os dados sem limit/offset (como useNotasFiscais) ***
+            let url = API_URL_HISTORICO;
             
-            // Adicionar parâmetro de status
-            const status = params.status || NotaStatusEnum.APROVADO;
-            url = `${url}?status=${status}`;
-            
-            // Adicionar outros parâmetros se existirem
-            if (params.fornecedor) {
-                url = `${url}&fornecedor="${params.fornecedor}"`;
-            }
-            
+            // Adicionar ordenação se existir
             if (params.sort) {
-                url = `${url}&sort=${params.sort}&order=${params.order || 'asc'}`;
+                url = `${url}&sort=${params.sort}&order=${params.order || 'desc'}`;
             }
             
-            if (params.page) {
-                const limit = params.limit || 8;
-                const offset = (params.page - 1) * limit;
-                url = `${url}&limit=${limit}&offset=${offset}`;
-            }
+            // *** REMOVIDO: parâmetros limit, offset e cnpj_prestador da URL ***
+            // A filtragem será feita localmente no frontend
             
-            // Fazer a chamada à API com os headers de autenticação
-            const response = await axios.get(url, { headers });
+            console.log('🚀 URL da requisição (SEM filtros):', url);
             
-            // Processar a resposta para o formato esperado
-            let responseData = response.data;
+            // Delay para debounce
+            await new Promise(resolve => setTimeout(resolve, 300));
             
-            // Se a resposta for um array direto, adaptar para o formato esperado
+            const response = await axios.get(url, { 
+                headers,
+                cancelToken: cancelTokenRef.current.token
+            });
+            
+            const responseData = response.data;
+            console.log('📦 Resposta da API (todos os dados):', responseData);
+            
+            // Processar resposta (igual ao useNotasFiscais)
             if (Array.isArray(responseData)) {
-                responseData = {
-                    notas: responseData,
-                    totalItems: responseData.length,
-                    totalPages: 1,
-                    page: 1
-                };
+                return isValidNotasData(responseData) ? responseData : [];
             }
             
-            return responseData;
+            if (responseData.notas && Array.isArray(responseData.notas)) {
+                return isValidNotasData(responseData.notas) ? responseData.notas : [];
+            }
+            
+            return [];
         } catch (error) {
+            if (axios.isCancel(error)) {
+                return [];
+            }
             console.error('Erro ao buscar notas fiscais:', error);
             throw new Error('Falha ao buscar notas fiscais da API');
         }
     }, [getAuthToken]);
 
-    // Função para filtrar notas com base nos parâmetros
+    // *** ADICIONADO: Função para aplicar paginação nos dados (igual useNotasFiscais) ***
+    const paginateData = useCallback((data: NotaFiscal[], currentPage: number) => {
+        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+        const endIndex = startIndex + ITEMS_PER_PAGE;
+        return data.slice(startIndex, endIndex);
+    }, []);
+
+    // *** ADICIONADO: Função para filtrar dados localmente ***
+    const filterDataLocally = useCallback((data: NotaFiscal[], searchTerm: string) => {
+        if (!searchTerm.trim()) {
+            return data;
+        }
+        
+        const term = searchTerm.toLowerCase().trim();
+        return data.filter(nota => {
+            // Filtrar por CNPJ do prestador (fornecedor)
+            const cnpj = nota.filCnpj?.toLowerCase() || '';
+            
+            return cnpj.includes(term);
+        });
+    }, []);
+
+    // *** CORRIGIDO: Função principal usando estratégia do useNotasFiscais ***
     const filterNotas = useCallback(async (params: NotasParams) => {
-        // Definir o estado de carregamento antes de iniciar a requisição
         setLoading(true);
         setError(null);
         
         try {
-            // Buscar dados da API
-            const data = await fetchNotasFromAPI(params);
+            console.log('🔍 Parâmetros de busca:', params);
             
-            // Verificar se os dados estão no formato esperado
-            const notasData = data.notas || data;
+            const notasData = await fetchNotasFromAPI(params);
             
-            // Atualizar estados com os dados da API
-            if (Array.isArray(notasData)) {
-                // Verificar se é um array com um objeto vazio (caso de nenhum resultado)
-                if (notasData.length === 1 && Object.keys(notasData[0]).length === 0) {
-                    console.log('Array com objeto vazio detectado, tratando como array vazio');
-                    setNotas([]);
-                    setPage(params.page || 1);
-                    setTotalPages(1);
-                } else {
-                    setNotas(notasData);
-                    setPage(params.page || 1);
-                    setTotalPages(data.totalPages || Math.ceil((data.totalItems || notasData.length) / (params.limit || 8)));
-                }
+            if (Array.isArray(notasData) && isValidNotasData(notasData)) {
+                // *** FILTRAR DADOS LOCALMENTE ***
+                const filteredData = filterDataLocally(notasData, params.fornecedor || '');
+                console.log('📋 Dados filtrados localmente:', filteredData.length, 'de', notasData.length);
+                
+                // Guardar todos os dados filtrados (igual useNotasFiscais)
+                allNotasRef.current = filteredData;
+                
+                // Calcular total de páginas
+                const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
+                setTotalPages(totalPages || 1);
+                
+                // Definir página atual
+                const newPage = params.page || 1;
+                const validPage = Math.min(Math.max(1, newPage), totalPages || 1);
+                setPage(validPage);
+                
+                // Aplicar paginação
+                const paginatedData = paginateData(filteredData, validPage);
+                setNotas(paginatedData);
             } else {
-                console.warn('Formato de resposta inesperado:', notasData);
+                // Dados vazios
+                allNotasRef.current = [];
                 setNotas([]);
-                setPage(params.page || 1);
+                setPage(1);
                 setTotalPages(1);
             }
         } catch (err) {
             console.error('Erro ao buscar notas fiscais:', err);
             setError('Erro ao buscar notas fiscais');
+            allNotasRef.current = [];
             setNotas([]);
         } finally {
-            // Garantir que o estado de carregamento seja atualizado apenas quando todas as operações terminarem
-            setLoading(false);
+            setTimeout(() => setLoading(false), 300);
         }
-    }, [fetchNotasFromAPI]);
+    }, [fetchNotasFromAPI, paginateData, filterDataLocally]);
 
-    // Efeito para carregar as notas iniciais
+    // Ref para manter referência atualizada de filterNotas
+    // Permite usar a função sem incluí-la nas dependências do useEffect
+    const filterNotasRef = useRef(filterNotas);
+    
+    // Atualizar ref sempre que filterNotas mudar
     useEffect(() => {
-        filterNotas({
-            status: NotaStatusEnum.APROVADO,
-            limit: initialParams.limit || 8
-        });
-    }, [filterNotas, initialParams.limit]);
-    
-    // Função de busca específica para o histórico
-    const handleSearch = useCallback((term: string) => {
-        setSearchTerm(term);
+        filterNotasRef.current = filterNotas;
+    }, [filterNotas]);
+
+    // Resetar flag de inicialização quando parâmetros iniciais mudarem
+    useEffect(() => {
+        hasInitializedRef.current = false;
+    }, [initialParams.limit]);
+
+    // Resetar flag quando autenticação mudar de loading para ready
+    useEffect(() => {
+        if (!authLoading) {
+            hasInitializedRef.current = false;
+        }
+    }, [authLoading]);
+
+    // Efeito para carregar as notas iniciais após a autenticação estar pronta
+    useEffect(() => {
+        // Aguardar autenticação estar pronta
+        if (authLoading) return;
         
-        filterNotas({
-            status: NotaStatusEnum.APROVADO,
-            fornecedor: term.trim() ? term : undefined,
-            page: 1,
-            limit: initialParams.limit || 8
+        // Evitar busca duplicada quando componente remonta sem mudança de parâmetros
+        if (hasInitializedRef.current) return;
+        
+        filterNotasRef.current({
+            status: NotaStatusEnum.COMPLETA,
+            limit: initialParams.limit || 9
         });
+        
+        hasInitializedRef.current = true;
+
+        return () => {
+            if (cancelTokenRef.current) {
+                cancelTokenRef.current.cancel('Componente desmontado');
+            }
+            if (debounceTimeoutRef.current) {
+                clearTimeout(debounceTimeoutRef.current);
+            }
+        };
+    }, [authLoading, initialParams.limit]); // Removido filterNotas das dependências
+
+    // *** CORRIGIDO: handleSearch igual ao useNotasFiscais ***
+    const handleSearch = useCallback((term: string) => {
+        console.log('🔎 Termo de busca recebido:', term);
+        
+        // Atualizar o estado imediatamente
+        setSearchTerm(term);
+
+        // Limpar timeout anterior
+        if (debounceTimeoutRef.current) {
+            clearTimeout(debounceTimeoutRef.current);
+        }
+
+        // Se o campo estiver vazio, executar imediatamente
+        if (term.trim() === '') {
+            console.log('🧹 Campo vazio, buscando todas as notas');
+            filterNotas({
+                status: NotaStatusEnum.COMPLETA,
+                page: 1,
+                fornecedor: undefined,
+                limit: initialParams.limit || 9
+            });
+            return;
+        }
+
+        // Para termos não vazios, aplicar debounce
+        debounceTimeoutRef.current = setTimeout(() => {
+            console.log('⏰ Executando busca com debounce para:', term);
+            filterNotas({
+                status: NotaStatusEnum.COMPLETA,
+                page: 1,
+                fornecedor: term,
+                limit: initialParams.limit || 9
+            });
+        }, 300);
     }, [filterNotas, initialParams.limit]);
     
-    // Função para lidar com mudança de página
+    // *** CORRIGIDO: Mudança de página usando paginação local (igual useNotasFiscais) ***
     const handlePageChange = useCallback((newPage: number) => {
-        filterNotas({
-            status: NotaStatusEnum.APROVADO,
-            page: newPage,
-            fornecedor: searchTerm || undefined,
-            limit: initialParams.limit || 8
-        });
-    }, [filterNotas, searchTerm, initialParams.limit]);
+        setPage(newPage);
+        const paginatedData = paginateData(allNotasRef.current, newPage);
+        setNotas(paginatedData);
+    }, [paginateData]);
     
-    // Função para ordenar resultados
+    // *** CORRIGIDO: Ordenação usando estratégia mista (igual useNotasFiscais) ***
     const handleSort = useCallback((field: keyof NotaFiscal) => {
         const direction = 
             sortConfig.field === field && sortConfig.direction === 'asc' ? 'desc' : 'asc';
         
-        setSortConfig({ field: field as keyof NotaFiscal | null, direction });
+        setSortConfig({ field, direction });
         
-        filterNotas({
-            status: NotaStatusEnum.APROVADO,
-            sort: field as string,
-            order: direction,
-            page: 1,
-            limit: initialParams.limit || 8,
-            fornecedor: searchTerm || undefined
+        // Tentar ordenação via API primeiro (se houver termo de busca)
+        if (searchTerm) {
+            filterNotas({
+                status: NotaStatusEnum.COMPLETA,
+                sort: field as string,
+                order: direction,
+                page: 1,
+                fornecedor: searchTerm || undefined,
+                limit: initialParams.limit || 9
+            });
+            return;
+        }
+        
+        // Ordenação local (mais rápida para dados já carregados)
+        const sortedData = [...allNotasRef.current].sort((a, b) => {
+            let aValue = a[field];
+            let bValue = b[field];
+            
+            // Tratar valores nulos/undefined
+            if (!aValue && !bValue) return 0;
+            if (!aValue) return 1;
+            if (!bValue) return -1;
+            
+            // Tratar datas como strings ISO
+            if (field === 'emission_date' || field === 'created_at' || field === 'updated_qive_date') {
+                aValue = new Date(aValue as string).getTime();
+                bValue = new Date(bValue as string).getTime();
+            }
+            
+            const sortDirection = direction === 'desc' ? -1 : 1;
+            
+            if (aValue < bValue) return -1 * sortDirection;
+            if (aValue > bValue) return 1 * sortDirection;
+            return 0;
         });
-    }, [filterNotas, sortConfig, searchTerm, initialParams.limit]);
+        
+        // Atualizar dados completos ordenados
+        allNotasRef.current = sortedData;
+        
+        // Aplicar paginação nos dados ordenados
+        const paginatedData = paginateData(sortedData, 1);
+        setNotas(paginatedData);
+        setPage(1);
+    }, [sortConfig, searchTerm, filterNotas, initialParams.limit, paginateData]);
     
     // Função para obter o PDF de uma nota
-    const getNotaPDF = useCallback(async (id: string) => {
+    const getNotaPDF = useCallback(async (nota: NotaFiscal) => {
         try {
-            // Obter o token de autenticação
             const token = getAuthToken();
             
-            const nota = notas?.find(n => n.id === id);
-            if (nota && nota.pdf_path) {
-                const response = await axios.get(`${API_URL}/pdf/${id}`, {
-                    responseType: 'blob',
-                    headers: {
-                        'Authorization': token ? `Bearer ${token}` : '',
-                    }
-                });
-                
-                // Criar URL para download
-                const url = window.URL.createObjectURL(new Blob([response.data]));
-                const link = document.createElement('a');
-                link.href = url;
-                link.setAttribute('download', `nota-fiscal-${id}.pdf`);
-                document.body.appendChild(link);
-                link.click();
-                link.remove();
-            } else {
-                alert('PDF não disponível para esta nota fiscal');
-            }
+            const response = await axios.get(`https://vsmmzloplfbxdkohpxea.supabase.co/storage/v1/object/public/nf/files/${nota.qive_id}.pdf`, {
+                responseType: 'blob',
+                headers: {
+                    "Content-Type": "application/pdf",
+                    'Authorization': token ? `Bearer ${token}` : '',
+                }
+            });
+            
+            // Criar URL para download
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `nota-fiscal-${nota.qive_id}.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
         } catch (error) {
             console.error('Erro ao baixar PDF:', error);
             alert('Erro ao baixar o PDF da nota fiscal');
         }
-    }, [getAuthToken, notas]);
+    }, [getAuthToken]);
     
     // Função para obter o XML de uma nota
     const getNotaXML = useCallback(async (id: string) => {
         try {
-            // Obter o token de autenticação
             const token = getAuthToken();
             
-            // Verificar se temos o caminho do XML
-            const nota = notas?.find(n => n.id === id);
-            if (nota && nota.xml_path) {
-                const response = await axios.get(`${API_URL}/xml/${id}`, {
-                    responseType: 'blob',
-                    headers: {
-                        'Authorization': token ? `Bearer ${token}` : '',
-                    }
-                });
-                
-                // Criar URL para download
-                const url = window.URL.createObjectURL(new Blob([response.data]));
-                const link = document.createElement('a');
-                link.href = url;
-                link.setAttribute('download', `nota-fiscal-${id}.xml`);
-                document.body.appendChild(link);
-                link.click();
-                link.remove();
-            } else {
-                alert('XML não disponível para esta nota fiscal');
-            }
+            const response = await axios.get(`${API_URL}/xml/${id}`, {
+                responseType: 'blob',
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : '',
+                }
+            });
+            
+            // Criar URL para download
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `nota-fiscal-${id}.xml`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
         } catch (error) {
             console.error('Erro ao baixar XML:', error);
             alert('Erro ao baixar o XML da nota fiscal');
-        }
-    }, [getAuthToken, notas]);
-    
-    // Função para buscar uma nota específica pelo ID
-    const getNotaById = useCallback(async (id: string) => {
-        try {
-            // Obter o token de autenticação
-            const token = getAuthToken();
-            
-            const response = await axios.get(`${API_URL}/${id}`, {
-                headers: {
-                    'Authorization': token ? `Bearer ${token}` : '',
-                    'Content-Type': 'application/json'
-                }
-            });
-            return response.data;
-        } catch (error) {
-            console.error('Erro ao buscar detalhes da nota:', error);
-            return null;
         }
     }, [getAuthToken]);
     
@@ -275,7 +394,6 @@ export function useHistoricoNotas(initialParams: NotasParams = {}) {
         handleSort,
         getNotaPDF,
         getNotaXML,
-        getNotaById,
         setLoading,
-    }
-} 
+    };
+}

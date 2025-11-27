@@ -42,8 +42,8 @@ asdf install
 ### 2. Clone o repositório
 
 ```bash
-git clone https://github.com/seu-usuario/superia.git
-cd superia
+git clone https://github.com/seu-usuario/Superia.git
+cd Superia
 ```
 
 ### 3. Instale as dependências

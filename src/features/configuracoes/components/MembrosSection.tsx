@@ -1,3 +1,5 @@
+'use client'
+
 import { Button } from "@/shared/components/ui/button"
 import { Input } from "@/shared/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/components/ui/table"
@@ -234,7 +236,7 @@ export function MembrosSection({
                 {userIsAdmin && (
                     <Button 
                         variant="outline" 
-                        className="gap-1 rounded-full text-green-500 border border-green-500 hover:bg-green-50"
+                        className="gap-1 rounded-full text-[#42C583] border border-[#42C583] hover:bg-green-50"
                         onClick={() => setIsDialogOpen(true)} 
                         disabled={loading}
                     >

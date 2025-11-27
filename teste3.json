@@ -1,0 +1,36 @@
+{
+    "items": [
+      {
+        "prjCod": 1,
+        "ctpCod": 498,
+        "tmpMnyValor": 2126.30,
+        "ctpDesNome": "HONORÁRIO DESPACHANTE - DI",
+        "total": 100
+      }
+    ],
+    "docTip": "2",
+    "globalDocVldTipo": 0,
+    "frontModelName": "gerDocProcesso",
+    "priCod": 19814,
+    "priEspRefcliente": "PGM-4537/25",
+    "dpeNomPessoa": "SPEED ASSESSORIA INTERNACIONAL LTDA",
+    "pesCod": 5185,
+    "endCodFis": 1,
+    "gcdCod": 526,
+    "valor": 2126.30,
+    "fisEspSerie": null,
+    "gcdVldFormaRateio": 2, 
+    "tpcCod": 231,
+    "prdCod": null,
+    "docDtaEmissao": 1750647600000,
+    "docDtaMovimento": 1752030000000,
+    "docEspNumero": "16297",
+    "dtaVencimento": 1752030000000,
+    "tpcDesNome": "SERVIÇOS TOMADOS",
+    "cfoEspCod": "1933A1",
+    "gcdDesNome": "DESPACHO ADUANEIRO AUTOMAÇÃO",
+    "gcdVldTela": "4",
+    "pdcDocFederal": "06788286000106",
+    "gcdVldPropria": 0
+  }
+  

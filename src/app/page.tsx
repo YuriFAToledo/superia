@@ -127,7 +127,7 @@ export default function LoginPage() {
             />
             
             <div className="text-sm text-right">
-              <Link href="/send-reset-password" className="font-medium text-green-600 hover:text-green-500">
+              <Link href="/send-reset-password" className="font-medium text-[#42C583] hover:text-[#36A86E]">
                 Esqueceu sua senha?
               </Link>
             </div>
@@ -135,7 +135,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading || Boolean(formErrors.email || formErrors.password)}
-              className="w-full py-2 px-4 rounded-md text-white font-medium bg-green-500 hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
+              className="w-full py-2 px-4 rounded-md text-white font-medium bg-[#42C583] hover:bg-[#36A86E] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#42C583] disabled:opacity-50"
             >
               {loading ? 'Entrando...' : 'Entrar'}
             </button>

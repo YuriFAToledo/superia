@@ -1,3 +1,5 @@
+'use client'
+
 import { Button } from "@/shared/components/ui/button";
 import { Edit, KeyRound, Mail, Trash2 } from "lucide-react";
 import { User } from "@supabase/supabase-js";
@@ -46,7 +48,7 @@ export function MemberActions({
               disabled={loading}
               title="Editar"
             >
-              <Edit size={16} className="text-green-500" />
+              <Edit size={16} className="text-[#42C583]" />
             </Button>
           </TooltipTrigger>
           <TooltipContent>

@@ -1,0 +1,38 @@
+{
+    "items": [
+      {
+        "prjCod": 1,
+        "ctpCod": 498,
+        "tmpMnyValor": 1674.71,
+          "ctpDesNome": "HONORÁRIO DESPACHANTE - DI",
+          "tpcDesNome": "SERVIÇOS TOMADOS",
+          "cfoEspCod": "1933A1",
+        "total": 100
+      }
+    ],
+    "filCod": 1,
+    "docTip": "2",
+    "globalDocVldTipo": 0,
+    "priCod": 19855,
+    "priEspRefcliente": "PGM-4577/25",
+    "dpeNomPessoa": "FGL GLOBAL LOGISTICA LTDA",
+    "pesCod": 6412,
+    "endCodFis": "4",
+    "gcdCod": 526,
+    "valor": 1674.71,
+    "fisEspSerie": null,
+        "gcdVldFormaRateio": 2, 
+    "tpcCod": 231,
+    "prdCod": null,
+    "docDtaEmissao": 1750647600000,
+    "docDtaMovimento": 1752030000000,
+    "docEspNumero": "56409",
+    "dtaVencimento": 1752030000000,
+    "tpcDesNome": "SERVIÇOS TOMADOS",
+    "cfoEspCod": "1933A1",
+    "gcdDesNome": "DESPACHO ADUANEIRO AUTOMAÇÃO",
+    "gcdVldTela": "4",
+    "frontModelName": "gerDocProcesso",
+    "pdcDocFederal": "08594519000157"
+  }
+  

@@ -1,0 +1,42 @@
+{
+    "items": [
+      {
+        "prjCod": 2,
+        "ctpCod": 217,
+        "tmpMnyValor": 35,
+        "ctpDesNome": "CONSULTAS E ANÁLISES DE CRÉDITO",
+        "total": 100
+        // "tpcDesNome": "SERVIÇOS TOMADOS",
+        // "cfoEspCod": "1933A1",
+      }
+    ],
+
+    "docTip": "2",
+    "docVldTipo": "0",
+    "priCod": null,
+    "priEspRefcliente": null,
+
+    "dpeNomPessoa": "INQUEST TECH TECNOLOGIA DA INFORMACAO LTDA",
+    "pesCod": 10301,
+    "endCodFis": 1,
+    "gcdCod": 532,
+    "valor": 35,
+    "gcdVldTela": "4",
+    "gcdVldPropria": 0,
+    "fisEspSerie": null,
+    <"gcdVldFormaRateio": 2>,
+    
+    "tpcCod": 231,
+    "prdCod": null,
+    "docDtaEmissao": 1751943600000,
+    "docDtaMovimento": 1751943600000,
+    "docEspNumero": "4023",
+    "dtaVencimento": 1751943600000,
+    "tpcDesNome": "SERVIÇOS TOMADOS",
+    "pdcDocFederal": "57247628000103",
+    "gcdDesNome": "ANÁLISE DE CRÉDITO - ADMINISTRATIVO - TRADING - AUTOMAÇÃO",
+    "cfoEspCod": "1933A1",
+    "frontModelName": "gerDocProcesso",
+    // "filCod": 1,
+  }
+  
