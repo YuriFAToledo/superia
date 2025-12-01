@@ -183,7 +183,7 @@ export function useNotasFiscais(initialParams: NotasParams = {}) {
             }
             
             await fetchCounters();
-        } catch (err) {
+        } catch {
             setError('Erro ao buscar notas fiscais');
             allNotasRef.current = [];
             setNotas([]);
@@ -300,6 +300,7 @@ export function useNotasFiscais(initialParams: NotasParams = {}) {
     }, [paginateData]);
     
     const handleSort = useCallback((field: keyof NotaFiscal) => {
+        
         const direction = 
             sortConfig.field === field && sortConfig.direction === 'asc' ? 'desc' : 'asc';
         
@@ -329,7 +330,7 @@ export function useNotasFiscais(initialParams: NotasParams = {}) {
         const paginatedData = paginateData(sortedData, 1);
         setNotas(paginatedData);
         setPage(1);
-    }, [sortConfig, paginateData]);
+    }, [sortConfig, activeFilter, searchTerm, filterNotas, initialParams.limit, paginateData]);
     
     const handleAccessPDF = useCallback(async (nota: NotaFiscal) => {
         try {
@@ -376,6 +377,7 @@ export function useNotasFiscais(initialParams: NotasParams = {}) {
             await axios.post(`${REPROCESS_API_URL}/${nota.numero}/retry`,
                 body,
                 { headers }
+                //:numero_nf/retry
             );
 
             toast.success(`Nota fiscal ${nota.numero} enviada para reprocessamento.`);

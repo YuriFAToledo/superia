@@ -19,14 +19,10 @@ import {
 } from "@/shared/components/ui/tooltip";
 
 interface HistoricoTableProps {
-  notas: NotaFiscal[] | null;
+  notas: HistoricoNota[];
   loading: boolean;
-  onAccessPDF: (nota: NotaFiscal) => void;
-  onSort: (field: keyof NotaFiscal) => void;
-  sorting: {
-    field: keyof NotaFiscal | null;
-    direction: 'asc' | 'desc';
-  };
+  onSort: (field: keyof HistoricoNota) => void;
+  sorting: { field: keyof HistoricoNota | null; direction: 'asc' | 'desc'; };
 }
 
 export type HistoricoTableRef = {
@@ -34,41 +30,25 @@ export type HistoricoTableRef = {
   handleSearch: (term: string) => void;
 };
 
-// Número fixo de linhas a serem exibidas na tabela
-const FIXED_ROW_COUNT = 12;
+const FIXED_ROW_COUNT = 9;
 
-/**
- * Componente de tabela para notas fiscais
- */
 export const HistoricoTable = forwardRef<HistoricoTableRef, HistoricoTableProps>(
-  ({ notas, loading, onAccessPDF, onSort, sorting }, ref) => {
-    // Expor funções para o componente pai
+  ({ notas, loading, onSort, sorting }, ref) => {
     useImperativeHandle(ref, () => ({
-      handleFilterChange: (filter: string | null) => {
-        console.log("Tabela: Filtro alterado para", filter);
-      },
-      handleSearch: (term: string) => {
-        console.log("Tabela: Termo de busca alterado para", term);
-      }
+      handleFilterChange: (filter: string | null) => { console.log('Filtro:', filter); },
+      handleSearch: (term: string) => { console.log('Busca:', term); }
     }));
 
-    // Função para renderizar o cabeçalho da coluna com opção de ordenação
-    const renderSortableHeader = (label: string, field: keyof NotaFiscal) => {
+    const renderSortableHeader = (label: string, field: keyof HistoricoNota) => {
       const isSorted = sorting.field === field;
-      const sortIcon = isSorted && sorting.direction === 'asc' ? '↑' : '↓';
-      
+      const sortIcon = isSorted && sorting.direction === 'asc' ? '' : '';
       return (
-        <div 
-          className="flex items-center cursor-pointer" 
-          onClick={() => onSort(field)}
-        >
-          {label}
-          {isSorted && <span className="ml-1">{sortIcon}</span>}
+        <div className='flex items-center cursor-pointer hover:text-gray-900' onClick={() => onSort(field)}>
+          {label} {isSorted && <span className='ml-1'>{sortIcon}</span>}
         </div>
       );
     };
 
-    // Função para renderizar a badge de status com a cor correta
     const renderStatusBadge = (status: string) => {
       let bgClass = "";
       let textClass = "";
@@ -92,12 +72,6 @@ export const HistoricoTable = forwardRef<HistoricoTableRef, HistoricoTableProps>
           textClass = "text-gray-800";
           label = status;
       }
-      
-      return (
-        <span className={`px-2 py-1 rounded-full text-xs font-medium ${bgClass} ${textClass}`}>
-          {label}
-        </span>
-      );
     };
 
     // Formatar valor para exibição
@@ -117,41 +91,26 @@ export const HistoricoTable = forwardRef<HistoricoTableRef, HistoricoTableProps>
           return date.toLocaleDateString('pt-BR');
         };
 
-    // Renderizar o conteúdo da tabela com base no estado
     const renderTableContent = () => {
       if (loading) {
         return (
           <TableRow>
-            <TableCell colSpan={8} className="text-center py-12">
-              <div className="flex flex-col justify-center items-center">
-                <div className="flex justify-center items-center space-x-4 mb-4">
-                  <div className="w-3 h-3 bg-primary rounded-full opacity-70 animate-[loader-pulse_1.2s_ease-in-out_infinite]"></div>
-                  <div className="w-3 h-3 bg-primary rounded-full opacity-70 animate-[loader-pulse_1.2s_ease-in-out_infinite_0.2s]"></div>
-                  <div className="w-3 h-3 bg-primary rounded-full opacity-70 animate-[loader-pulse_1.2s_ease-in-out_infinite_0.4s]"></div>
-                </div>
-                <span className="text-gray-500 font-medium">Carregando notas...</span>
+            <TableCell colSpan={6} className='text-center py-12'>
+              <div className='flex flex-col justify-center items-center'>
+                <span className='text-gray-500 font-medium'>Carregando histórico...</span>
               </div>
             </TableCell>
           </TableRow>
         );
       }
 
-      if (notas && notas.length === 0) {
+      if (notas.length === 0) {
         return (
-          <>
-            <TableRow className="h-[52px] border-b border-gray-100">
-              <TableCell colSpan={8} className="py-6 text-center text-gray-500">
-                Nenhuma nota fiscal encontrada.
-              </TableCell>
-            </TableRow>
-            {Array.from({ length: FIXED_ROW_COUNT - 1 }).map((_, index) => (
-              <TableRow key={`empty-${index}`} className="h-[52px] border-b border-gray-100">
-                {Array.from({ length: 7 }).map((_, cellIndex) => (
-                  <TableCell key={`empty-cell-${index}-${cellIndex}`} className="py-4 px-6 h-[52px]"></TableCell>
-                ))}
-              </TableRow>
-            ))}
-          </>
+          <TableRow className='h-[52px]'>
+            <TableCell colSpan={6} className='py-6 text-center text-gray-500'>
+              Nenhuma nota fiscal encontrada.
+            </TableCell>
+          </TableRow>
         );
       }
 
@@ -226,14 +185,11 @@ export const HistoricoTable = forwardRef<HistoricoTableRef, HistoricoTableProps>
               </TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody className="bg-white">
-            {renderTableContent()}
-          </TableBody>
+          <TableBody className='bg-white'>{renderTableContent()}</TableBody>
         </Table>
       </div>
     );
   }
 );
 
-// Adicionar um displayName ao componente
-HistoricoTable.displayName = "HistoricoTable"; 
+HistoricoTable.displayName = 'HistoricoTable';

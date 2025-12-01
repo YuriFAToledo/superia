@@ -14,12 +14,12 @@ export const memberService = {
   getCurrentUser: async (): Promise<User | null> => {
     try {
       const supabase = createBrowserSupabaseClient();
-      const { data: { user }, error } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
       
-      if (error) throw error;
+      
       
       return user;
-    } catch (error) {
+    } catch {
       return null;
     }
   },
@@ -49,7 +49,7 @@ export const memberService = {
         users: paginatedUsers,
         totalPages: totalPages > 0 ? totalPages : 1
       };
-    } catch (error) {
+    } catch {
       throw new Error("Erro ao buscar membros");
     }
   },
@@ -135,7 +135,7 @@ export const memberService = {
       }
 
       // Preparar metadados atualizados
-      const userMetadata: Record<string, any> = { 
+      const userMetadata: Record<string, unknown> = { 
         ...existingUser.user.user_metadata,
         display_name: userData.displayName
       };

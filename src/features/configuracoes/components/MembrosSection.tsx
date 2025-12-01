@@ -4,29 +4,21 @@ import { Button } from "@/shared/components/ui/button"
 import { Input } from "@/shared/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/components/ui/table"
 import * as Dialog from '@radix-ui/react-dialog'
-import { Edit, KeyRound, Mail, Plus, Trash2, X } from "lucide-react"
+import { KeyRound, Mail, Plus, X } from "lucide-react"
 import { User } from "@supabase/supabase-js"
 import { useState, useCallback } from "react"
 import { MemberUpdateData } from "../types"
 import { Pagination } from "@/shared/components/common/pagination"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/shared/components/ui/tooltip"
+ 
 import { MemberActions } from "./MemberActions"
 import { MemberStatusBadge } from "./MemberStatusBadge"
 import { DeleteConfirmDialog } from "./DeleteConfirmDialog"
 import { AddMemberDialog } from "./AddMemberDialog"
 import { 
   getDisplayName, 
-  formatRole, 
   isAdmin, 
-  isEmptyMembers,
-  validateMemberUpdateData 
+  isEmptyMembers
 } from "../utils/memberUtils"
-import { toast } from "sonner"
 
 interface MembersSectionProps {
     isDialogOpen: boolean
