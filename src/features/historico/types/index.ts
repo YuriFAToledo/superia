@@ -1,7 +1,11 @@
 'use client'
 
 
-import { NotaFiscal as BaseNotaFiscal, NotaStatusEnum } from '@/features/notas/types';
+import { NotaFiscal as BaseNotaFiscal, NotaStatusEnum, NotasParams } from '@/features/notas/types';
+
+export type NotaFiscal = BaseNotaFiscal;
+export { NotaStatusEnum };
+export type { NotasParams };
 
 /**
  * Status possíveis de uma nota fiscal no histórico

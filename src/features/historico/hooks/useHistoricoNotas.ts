@@ -29,31 +29,32 @@ export function useHistoricoNotas(initialParams: NotasParams = {}) {
     const [error, setError] = useState<string | null>(null);
     const [page, setPage] = useState(initialParams.page || 1);
     const [totalPages, setTotalPages] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
     const [searchTerm, setSearchTerm] = useState('');
     const [sortConfig, setSortConfig] = useState<SortConfig>({
         field: null,
         direction: 'desc'
     });
-    
+
     // *** IGUAL AO useNotasFiscais: Dados completos para paginação local ***
     const allNotasRef = useRef<NotaFiscal[]>([]);
-    
+
     // Referência para o token de cancelamento da última requisição
     const cancelTokenRef = useRef<CancelTokenSource | null>(null);
     const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-    
+
     // Ref para controlar se a busca inicial já foi executada
     // Evita refresh desnecessário quando componente remonta
     const hasInitializedRef = useRef(false);
-    
+
     // Obter o token de autenticação e estado de carregamento da sessão
     const { getAuthToken, loading: authLoading } = useAuth();
 
     // Função para validar dados das notas (mesma do useNotasFiscais)
     const isValidNotasData = (data: any[]): data is NotaFiscal[] => {
-        return Array.isArray(data) && data.length > 0 && 
-               typeof data[0] === 'object' && 
-               Object.keys(data[0]).length > 0;
+        return Array.isArray(data) && data.length > 0 &&
+            typeof data[0] === 'object' &&
+            Object.keys(data[0]).length > 0;
     };
 
     // *** CORRIGIDO: Função para buscar notas da API (SEM paginação via API) ***
@@ -63,48 +64,48 @@ export function useHistoricoNotas(initialParams: NotasParams = {}) {
             if (cancelTokenRef.current) {
                 cancelTokenRef.current.cancel('Operação cancelada devido a nova requisição');
             }
-            
+
             cancelTokenRef.current = axios.CancelToken.source();
-            
+
             const token = getAuthToken();
             const headers = {
                 'Authorization': token ? `Bearer ${token}` : '',
                 'Content-Type': 'application/json'
             };
-            
+
             // *** CORREÇÃO: Buscar TODOS os dados sem limit/offset (como useNotasFiscais) ***
             let url = API_URL_HISTORICO;
-            
+
             // Adicionar ordenação se existir
             if (params.sort) {
                 url = `${url}&sort=${params.sort}&order=${params.order || 'desc'}`;
             }
-            
+
             // *** REMOVIDO: parâmetros limit, offset e cnpj_prestador da URL ***
             // A filtragem será feita localmente no frontend
-            
+
             console.log('🚀 URL da requisição (SEM filtros):', url);
-            
+
             // Delay para debounce
             await new Promise(resolve => setTimeout(resolve, 300));
-            
-            const response = await axios.get(url, { 
+
+            const response = await axios.get(url, {
                 headers,
                 cancelToken: cancelTokenRef.current.token
             });
-            
+
             const responseData = response.data;
             console.log('📦 Resposta da API (todos os dados):', responseData);
-            
+
             // Processar resposta (igual ao useNotasFiscais)
             if (Array.isArray(responseData)) {
                 return isValidNotasData(responseData) ? responseData : [];
             }
-            
+
             if (responseData.notas && Array.isArray(responseData.notas)) {
                 return isValidNotasData(responseData.notas) ? responseData.notas : [];
             }
-            
+
             return [];
         } catch (error) {
             if (axios.isCancel(error)) {
@@ -127,12 +128,12 @@ export function useHistoricoNotas(initialParams: NotasParams = {}) {
         if (!searchTerm.trim()) {
             return data;
         }
-        
+
         const term = searchTerm.toLowerCase().trim();
         return data.filter(nota => {
             // Filtrar por CNPJ do prestador (fornecedor)
             const cnpj = nota.filCnpj?.toLowerCase() || '';
-            
+
             return cnpj.includes(term);
         });
     }, []);
@@ -141,29 +142,30 @@ export function useHistoricoNotas(initialParams: NotasParams = {}) {
     const filterNotas = useCallback(async (params: NotasParams) => {
         setLoading(true);
         setError(null);
-        
+
         try {
             console.log('🔍 Parâmetros de busca:', params);
-            
+
             const notasData = await fetchNotasFromAPI(params);
-            
+
             if (Array.isArray(notasData) && isValidNotasData(notasData)) {
                 // *** FILTRAR DADOS LOCALMENTE ***
                 const filteredData = filterDataLocally(notasData, params.fornecedor || '');
                 console.log('📋 Dados filtrados localmente:', filteredData.length, 'de', notasData.length);
-                
+
                 // Guardar todos os dados filtrados (igual useNotasFiscais)
                 allNotasRef.current = filteredData;
-                
+
                 // Calcular total de páginas
                 const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
                 setTotalPages(totalPages || 1);
-                
+                setTotalItems(filteredData.length);
+
                 // Definir página atual
                 const newPage = params.page || 1;
                 const validPage = Math.min(Math.max(1, newPage), totalPages || 1);
                 setPage(validPage);
-                
+
                 // Aplicar paginação
                 const paginatedData = paginateData(filteredData, validPage);
                 setNotas(paginatedData);
@@ -173,6 +175,7 @@ export function useHistoricoNotas(initialParams: NotasParams = {}) {
                 setNotas([]);
                 setPage(1);
                 setTotalPages(1);
+                setTotalItems(0);
             }
         } catch (err) {
             console.error('Erro ao buscar notas fiscais:', err);
@@ -187,7 +190,7 @@ export function useHistoricoNotas(initialParams: NotasParams = {}) {
     // Ref para manter referência atualizada de filterNotas
     // Permite usar a função sem incluí-la nas dependências do useEffect
     const filterNotasRef = useRef(filterNotas);
-    
+
     // Atualizar ref sempre que filterNotas mudar
     useEffect(() => {
         filterNotasRef.current = filterNotas;
@@ -209,15 +212,15 @@ export function useHistoricoNotas(initialParams: NotasParams = {}) {
     useEffect(() => {
         // Aguardar autenticação estar pronta
         if (authLoading) return;
-        
+
         // Evitar busca duplicada quando componente remonta sem mudança de parâmetros
         if (hasInitializedRef.current) return;
-        
+
         filterNotasRef.current({
             status: NotaStatusEnum.COMPLETA,
             limit: initialParams.limit || 9
         });
-        
+
         hasInitializedRef.current = true;
 
         return () => {
@@ -233,7 +236,7 @@ export function useHistoricoNotas(initialParams: NotasParams = {}) {
     // *** CORRIGIDO: handleSearch igual ao useNotasFiscais ***
     const handleSearch = useCallback((term: string) => {
         console.log('🔎 Termo de busca recebido:', term);
-        
+
         // Atualizar o estado imediatamente
         setSearchTerm(term);
 
@@ -265,21 +268,21 @@ export function useHistoricoNotas(initialParams: NotasParams = {}) {
             });
         }, 300);
     }, [filterNotas, initialParams.limit]);
-    
+
     // *** CORRIGIDO: Mudança de página usando paginação local (igual useNotasFiscais) ***
     const handlePageChange = useCallback((newPage: number) => {
         setPage(newPage);
         const paginatedData = paginateData(allNotasRef.current, newPage);
         setNotas(paginatedData);
     }, [paginateData]);
-    
+
     // *** CORRIGIDO: Ordenação usando estratégia mista (igual useNotasFiscais) ***
     const handleSort = useCallback((field: keyof NotaFiscal) => {
-        const direction = 
+        const direction =
             sortConfig.field === field && sortConfig.direction === 'asc' ? 'desc' : 'asc';
-        
+
         setSortConfig({ field, direction });
-        
+
         // Tentar ordenação via API primeiro (se houver termo de busca)
         if (searchTerm) {
             filterNotas({
@@ -292,44 +295,44 @@ export function useHistoricoNotas(initialParams: NotasParams = {}) {
             });
             return;
         }
-        
+
         // Ordenação local (mais rápida para dados já carregados)
         const sortedData = [...allNotasRef.current].sort((a, b) => {
             let aValue = a[field];
             let bValue = b[field];
-            
+
             // Tratar valores nulos/undefined
             if (!aValue && !bValue) return 0;
             if (!aValue) return 1;
             if (!bValue) return -1;
-            
+
             // Tratar datas como strings ISO
             if (field === 'emission_date' || field === 'created_at' || field === 'updated_qive_date') {
                 aValue = new Date(aValue as string).getTime();
                 bValue = new Date(bValue as string).getTime();
             }
-            
+
             const sortDirection = direction === 'desc' ? -1 : 1;
-            
+
             if (aValue < bValue) return -1 * sortDirection;
             if (aValue > bValue) return 1 * sortDirection;
             return 0;
         });
-        
+
         // Atualizar dados completos ordenados
         allNotasRef.current = sortedData;
-        
+
         // Aplicar paginação nos dados ordenados
         const paginatedData = paginateData(sortedData, 1);
         setNotas(paginatedData);
         setPage(1);
     }, [sortConfig, searchTerm, filterNotas, initialParams.limit, paginateData]);
-    
+
     // Função para obter o PDF de uma nota
     const getNotaPDF = useCallback(async (nota: NotaFiscal) => {
         try {
             const token = getAuthToken();
-            
+
             const response = await axios.get(`https://vsmmzloplfbxdkohpxea.supabase.co/storage/v1/object/public/nf/files/${nota.qive_id}.pdf`, {
                 responseType: 'blob',
                 headers: {
@@ -337,7 +340,7 @@ export function useHistoricoNotas(initialParams: NotasParams = {}) {
                     'Authorization': token ? `Bearer ${token}` : '',
                 }
             });
-            
+
             // Criar URL para download
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
@@ -352,19 +355,19 @@ export function useHistoricoNotas(initialParams: NotasParams = {}) {
             alert('Erro ao baixar o PDF da nota fiscal');
         }
     }, [getAuthToken]);
-    
+
     // Função para obter o XML de uma nota
     const getNotaXML = useCallback(async (id: string) => {
         try {
             const token = getAuthToken();
-            
+
             const response = await axios.get(`${API_URL}/xml/${id}`, {
                 responseType: 'blob',
                 headers: {
                     'Authorization': token ? `Bearer ${token}` : '',
                 }
             });
-            
+
             // Criar URL para download
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
@@ -379,7 +382,18 @@ export function useHistoricoNotas(initialParams: NotasParams = {}) {
             alert('Erro ao baixar o XML da nota fiscal');
         }
     }, [getAuthToken]);
-    
+
+    const reload = useCallback(() => {
+        filterNotas({
+            status: NotaStatusEnum.COMPLETA,
+            page: page,
+            fornecedor: searchTerm || undefined,
+            sort: sortConfig.field as string,
+            order: sortConfig.direction,
+            limit: ITEMS_PER_PAGE
+        });
+    }, [filterNotas, page, searchTerm, sortConfig]);
+
     return {
         notas,
         loading,
@@ -394,6 +408,9 @@ export function useHistoricoNotas(initialParams: NotasParams = {}) {
         handleSort,
         getNotaPDF,
         getNotaXML,
+
         setLoading,
+        totalItems,
+        reload
     };
 }

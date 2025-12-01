@@ -23,8 +23,12 @@ export function HistoricoPage() {
     handleSearch,
     handlePageChange,
     handleSort,
-    handlePageChange,
-    reload
+    reload,
+    searchTerm,
+    sorting: sortConfig,
+    fetchNotas,
+    getNotaPDF,
+    totalItems
   } = useHistoricoNotas();
 
   const [sortField, setSortField] = useState("mais_recente");
@@ -46,19 +50,19 @@ export function HistoricoPage() {
   // Função para lidar com mudança de ordenação
   const handleSortChange = (value: string) => {
     setSortField(value);
-    
+
     // Mapeamento dos valores do select para os campos reais da interface NotaFiscal
     const fieldMapping: Record<string, keyof NotaFiscal> = {
       "data_da_nota": "emission_date",
       "fornecedor": "filCnpj",
-      "numero_de_nota": "numero", 
+      "numero_de_nota": "numero",
       "valor": "total_value",
       "status": "status",
       "mais_recente": "created_at"
     };
-    
+
     const mappedField = fieldMapping[value];
-    
+
     if (mappedField) {
       handleSort(mappedField);
     }
@@ -113,8 +117,8 @@ export function HistoricoPage() {
 
             <div className="flex items-center gap-5 rounded-lg">
               <span className="text-[#B7B7B7] text-sm font-medium">Ordenar por:</span>
-              <Select 
-                value={sortField} 
+              <Select
+                value={sortField}
                 onValueChange={handleSortChange}
                 disabled={loading}
               >
@@ -152,14 +156,15 @@ export function HistoricoPage() {
           <div className="flex-1 overflow-auto h-full flex flex-col scrollbar-hide bg-white rounded-lg">
             <div className="flex-1">
               <HistoricoTable
-                notas={notas}
+                notas={notas || []}
                 loading={loading}
                 onSort={handleSort}
                 sorting={sortConfig}
+                onAccessPDF={handleAccessPDF}
               />
             </div>
 
-            {!loading && notas.length > 0 && totalPages > 1 && (
+            {!loading && notas && notas.length > 0 && totalPages > 1 && (
               <div className="mt-2 mb-4">
                 <Pagination
                   currentPage={page}
@@ -172,8 +177,8 @@ export function HistoricoPage() {
 
             {!loading && notas && notas.length === 0 && !error && (
               <div className="text-center py-8 text-gray-500">
-                {searchTerm ? 
-                  `Nenhuma nota fiscal encontrada para "${searchTerm}".` : 
+                {searchTerm ?
+                  `Nenhuma nota fiscal encontrada para "${searchTerm}".` :
                   "Nenhuma nota fiscal encontrada."
                 }
               </div>
@@ -182,8 +187,8 @@ export function HistoricoPage() {
             {error && !loading && (
               <div className="text-center py-4 text-red-500">
                 Ocorreu um erro ao carregar o histórico: {error}
-                <Button 
-                  variant="link" 
+                <Button
+                  variant="link"
                   className="text-primary ml-2"
                   onClick={() => fetchNotas({ limit: 9, status: NotaStatusEnum.COMPLETA })}
                 >
@@ -194,7 +199,7 @@ export function HistoricoPage() {
 
             {!loading && !error && totalItems > 0 && (
               <div className="text-center py-2 text-sm text-gray-500">
-                Exibindo {notas.length} de {totalItems} notas fiscais
+                Exibindo {notas ? notas.length : 0} de {totalItems} notas fiscais
               </div>
             )}
           </div>
