@@ -333,7 +333,7 @@ export function useHistoricoNotas(initialParams: NotasParams = {}) {
         try {
             const token = getAuthToken();
 
-            const response = await axios.get(`https://vsmmzloplfbxdkohpxea.supabase.co/storage/v1/object/public/nf/files/${nota.qive_id}.pdf`, {
+            const response = await axios.get(`https://kydyuvbqlltkoozocmim.supabase.co/storage/v1/object/public/nf/files/${nota.qive_id}.pdf`, {
                 responseType: 'blob',
                 headers: {
                     "Content-Type": "application/pdf",

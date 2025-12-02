@@ -29,18 +29,18 @@ export function useNotasFiscais(initialParams: NotasParams = {}) {
         field: null,
         direction: 'desc'
     });
-    
+
     // Novos estados para filtro de data
     const [startDate, setStartDate] = useState<string>('');
     const [endDate, setEndDate] = useState<string>('');
 
     const [shouldClearDates, setShouldClearDates] = useState(false);
-    
+
     const allNotasRef = useRef<NotaFiscal[]>([]);
     const cancelTokenRef = useRef<CancelTokenSource | null>(null);
     const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const hasInitializedRef = useRef(false);
-    
+
     const { getAuthToken } = useAuth();
 
     const fetchCounters = useCallback(async () => {
@@ -55,7 +55,7 @@ export function useNotasFiscais(initialParams: NotasParams = {}) {
             const data = response.data;
 
             if (data && data.resumo_status) {
-                const result = { 
+                const result = {
                     TOTAL: Object.values((data?.resumo_status || {}) as Record<string, number>).reduce((sum: number, val: number) => sum + val, 0),
                     ...data.resumo_status
                 };
@@ -77,46 +77,46 @@ export function useNotasFiscais(initialParams: NotasParams = {}) {
             if (cancelTokenRef.current) {
                 cancelTokenRef.current.cancel('Operação cancelada devido a nova requisição');
             }
-            
+
             cancelTokenRef.current = axios.CancelToken.source();
-            
+
             const token = getAuthToken();
             const headers = {
                 'Authorization': token ? `Bearer ${token}` : '',
                 'Content-Type': 'application/json'
             };
-            
+
             let url = API_URL;
-            
+
             if (params.status) {
                 url = `${url}?status=${params.status}`;
             }
-            
+
             if (params.fornecedor && params.fornecedor.trim() !== '') {
                 url = `${url}${url.includes('?') ? '&' : '?'}cnpj_prestador=${encodeURIComponent(params.fornecedor.trim())}`;
             }
-            
+
             if (params.sort) {
                 url = `${url}${url.includes('?') ? '&' : '?'}sort=${params.sort}&order=${params.order || 'desc'}`;
             }
-            
+
             await new Promise(resolve => setTimeout(resolve, 300));
-            
-            const response = await axios.get(url, { 
+
+            const response = await axios.get(url, {
                 headers,
                 cancelToken: cancelTokenRef.current.token
             });
-            
+
             const responseData = response.data;
-            
+
             if (Array.isArray(responseData)) {
                 return isValidNotasData(responseData) ? responseData : [];
             }
-            
+
             if (responseData.notas && Array.isArray(responseData.notas)) {
                 return isValidNotasData(responseData.notas) ? responseData.notas : [];
             }
-            
+
             return [];
         } catch (error) {
             if (axios.isCancel(error)) {
@@ -133,9 +133,9 @@ export function useNotasFiscais(initialParams: NotasParams = {}) {
 
         return notasData.filter(nota => {
             if (!nota.emission_date) return false;
-            
+
             const emissionDate = nota.emission_date.split('T')[0]; // Pega apenas YYYY-MM-DD
-            
+
             if (start && end) {
                 return emissionDate >= start && emissionDate <= end;
             } else if (start) {
@@ -143,7 +143,7 @@ export function useNotasFiscais(initialParams: NotasParams = {}) {
             } else if (end) {
                 return emissionDate <= end;
             }
-            
+
             return true;
         });
     }, []);
@@ -157,22 +157,22 @@ export function useNotasFiscais(initialParams: NotasParams = {}) {
     const filterNotas = useCallback(async (params: NotasParams) => {
         setLoading(true);
         setError(null);
-        
+
         try {
             const notasData = await fetchNotasFromAPI(params);
-            
+
             if (Array.isArray(notasData) && isValidNotasData(notasData)) {
                 const filteredByDate = filterByDateRange(notasData, startDate, endDate);
-                
+
                 allNotasRef.current = filteredByDate;
-                
+
                 const totalPages = Math.ceil(filteredByDate.length / ITEMS_PER_PAGE);
                 setTotalPages(totalPages || 1);
-                
+
                 const newPage = params.page || 1;
                 const validPage = Math.min(Math.max(1, newPage), totalPages || 1);
                 setPage(validPage);
-                
+
                 const paginatedData = paginateData(filteredByDate, validPage);
                 setNotas(paginatedData);
             } else {
@@ -181,7 +181,7 @@ export function useNotasFiscais(initialParams: NotasParams = {}) {
                 setPage(1);
                 setTotalPages(1);
             }
-            
+
             await fetchCounters();
         } catch {
             setError('Erro ao buscar notas fiscais');
@@ -193,7 +193,7 @@ export function useNotasFiscais(initialParams: NotasParams = {}) {
     }, [fetchNotasFromAPI, fetchCounters, paginateData, filterByDateRange, startDate, endDate]);
 
     const filterNotasRef = useRef(filterNotas);
-    
+
     useEffect(() => {
         filterNotasRef.current = filterNotas;
     }, [filterNotas]);
@@ -210,30 +210,30 @@ export function useNotasFiscais(initialParams: NotasParams = {}) {
                 fornecedor: searchTerm || undefined,
                 limit: initialParams.limit || 7
             });
-            setShouldClearDates(false); 
+            setShouldClearDates(false);
         }
     }, [shouldClearDates, filterNotas, activeFilter, searchTerm, initialParams.limit]);
 
     useEffect(() => {
         if (hasInitializedRef.current) return;
-        
+
         filterNotasRef.current({
             status: initialParams.status,
             limit: initialParams.limit || 7
         });
-        
+
         hasInitializedRef.current = true;
-        
+
         return () => {
             if (cancelTokenRef.current) {
                 cancelTokenRef.current.cancel('Componente desmontado');
             }
         };
     }, [initialParams.limit, initialParams.status]);
-    
+
     const handleFilterChange = useCallback((filter: NotaStatusEnum | 'TOTAL') => {
         setActiveFilter(filter);
-        
+
         filterNotas({
             status: filter === 'TOTAL' ? undefined : filter,
             page: 1,
@@ -241,7 +241,7 @@ export function useNotasFiscais(initialParams: NotasParams = {}) {
             limit: initialParams.limit || 7
         });
     }, [filterNotas, searchTerm, initialParams.limit]);
-    
+
     const handleSearch = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const term = e.target.value;
         setSearchTerm(term);
@@ -269,7 +269,7 @@ export function useNotasFiscais(initialParams: NotasParams = {}) {
             });
         }, 300);
     }, [filterNotas, activeFilter, initialParams.limit]);
-    
+
     const handleStartDateChange = useCallback((date: string) => {
         setStartDate(date);
     }, []);
@@ -292,55 +292,55 @@ export function useNotasFiscais(initialParams: NotasParams = {}) {
         setEndDate('');
         setShouldClearDates(true); // ✅ Ativa a flag
     }, []);
-    
+
     const handlePageChange = useCallback((newPage: number) => {
         setPage(newPage);
         const paginatedData = paginateData(allNotasRef.current, newPage);
         setNotas(paginatedData);
     }, [paginateData]);
-    
+
     const handleSort = useCallback((field: keyof NotaFiscal) => {
-        
-        const direction = 
+
+        const direction =
             sortConfig.field === field && sortConfig.direction === 'asc' ? 'desc' : 'asc';
-        
+
         setSortConfig({ field, direction });
-        
+
         const sortedData = [...allNotasRef.current].sort((a, b) => {
             let aValue = a[field];
             let bValue = b[field];
-            
+
             if (!aValue && !bValue) return 0;
             if (!aValue) return 1;
             if (!bValue) return -1;
-            
+
             if (field.includes("_date") || field === 'created_at') {
                 aValue = new Date(aValue as string).getTime();
                 bValue = new Date(bValue as string).getTime();
             }
-            
+
             const sortDirection = direction === 'desc' ? -1 : 1;
-            
+
             if (aValue < bValue) return -1 * sortDirection;
             if (aValue > bValue) return 1 * sortDirection;
             return 0;
         });
-        
+
         allNotasRef.current = sortedData;
         const paginatedData = paginateData(sortedData, 1);
         setNotas(paginatedData);
         setPage(1);
     }, [sortConfig, activeFilter, searchTerm, filterNotas, initialParams.limit, paginateData]);
-    
+
     const handleAccessPDF = useCallback(async (nota: NotaFiscal) => {
         try {
-            const response = await axios.get(`https://vsmmzloplfbxdkohpxea.supabase.co/storage/v1/object/public/nf/files/${nota.qive_id}.pdf`, {
+            const response = await axios.get(`https://kydyuvbqlltkoozocmim.supabase.co/storage/v1/object/public/nf/files/${nota.qive_id}.pdf`, {
                 responseType: 'blob',
                 headers: {
                     "Content-Type": "application/pdf"
                 }
             });
-            
+
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
@@ -352,11 +352,11 @@ export function useNotasFiscais(initialParams: NotasParams = {}) {
             toast.error('Erro ao baixar o PDF da nota fiscal');
         }
     }, []);
-    
+
     const handleCorrectNota = useCallback(async (
-        nota: NotaFiscal, 
-        motivo: string, 
-        processo?: string, 
+        nota: NotaFiscal,
+        motivo: string,
+        processo?: string,
         observacoes?: string,
         configDocCod?: number,
         contaProjetoCod?: number,
